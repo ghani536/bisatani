@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
+    <title>Portal Karyawan | PT. Bisatani</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/absensi.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/face-rec.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="login-container" class="login-container">
+        <div class="login-left">
+            <div class="login-animation">
+                <div class="central-logo">
+                    <div class="logo-core"><i class="fas fa-leaf"></i></div>
+                </div>
+                <h1 class="company-name">PT. BISATANI</h1>
+                <p class="tagline">Sistem Absensi & Payroll Terintegrasi</p>
+            </div>
+        </div>
+        <div class="login-right">
+            <div class="login-form-container">
+                <div class="login-header">
+                    <h2>Selamat Datang</h2>
+                    <p>Silakan login untuk mulai bekerja</p>
+                </div>
+                <form id="login-form" class="login-form">
+                    <div class="input-group">
+                        <label for="login-email">ID Karyawan / Email</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="login-email" placeholder="Masukkan ID atau Email" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="login-password" placeholder="Masukkan password" required>
+                            <button type="button" class="toggle-password" id="toggle-password"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="role-selector">
+                        <div class="role-options">
+                            <label class="role-option">
+                                <input type="radio" name="role" value="employee" checked>
+                                <span class="role-card"><i class="fas fa-user"></i><span>Karyawan</span></span>
+                            </label>
+                            <label class="role-option">
+                                <input type="radio" name="role" value="admin">
+                                <span class="role-card"><i class="fas fa-user-shield"></i><span>Admin</span></span>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-login"><span>Login</span><i class="fas fa-arrow-right"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="app-container hidden">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo"><i class="fas fa-seedling"></i><span class="sidebar-brand">BISATANI</span></div>
+            </div>
+
+            <nav class="sidebar-nav employee-menu" id="employee-menu">
+                <div class="nav-section">
+                    <span class="nav-label">Menu Utama</span>
+                    <ul class="nav-list">
+                        <li class="nav-item active" data-page="dashboard"><a href="#" class="nav-link"><i class="fas fa-home"></i><span>Dashboard</span></a></li>
+                        <li class="nav-item" data-page="absensi"><a href="#" class="nav-link"><i class="fas fa-clock"></i><span>Absensi & Lembur</span></a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <nav class="sidebar-nav admin-menu hidden" id="admin-menu-nav">
+                <div class="nav-section">
+                    <span class="nav-label">Panel Admin</span>
+                    <ul class="nav-list">
+                        <li class="nav-item" data-page="admin-dashboard"><a href="#" class="nav-link"><i class="fas fa-chart-line"></i><span>Dashboard Admin</span></a></li>
+                        <li class="nav-item" data-page="employees"><a href="#" class="nav-link"><i class="fas fa-users"></i><span>Data Karyawan</span></a></li>
+                    </ul>
+                </div>
+                <div class="nav-section">
+                    <span class="nav-label">Laporan & Gaji</span>
+                    <ul class="nav-list">
+                        <li class="nav-item" data-page="attendance-reports"><a href="#" class="nav-link"><i class="fas fa-file-invoice"></i><span>Rekap Absensi</span></a></li>
+                        <li class="nav-item" data-page="payroll-reports"><a href="#" class="nav-link"><i class="fas fa-wallet"></i><span>Payroll (26 - 25)</span></a></li>
+                        <li class="nav-item" data-page="settings"><a href="#" class="nav-link"><i class="fas fa-cog"></i><span>Pengaturan Gaji</span></a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar"><img src="https://ui-avatars.com/api/?name=User&background=10B981&color=fff" id="user-avatar"></div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">Memuat...</span>
+                        <span class="user-role" id="user-role">Karyawan</span>
+                    </div>
+                    <button class="btn-logout" id="btn-logout"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title" id="page-title">Dashboard</h1>
+                </div>
+                <div class="top-bar-right">
+                    <div class="current-time" id="current-time">
+                        <span class="time">00:00:00</span>
+                        <span class="date">-- --- ----</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="page-content" id="page-content">
+                <div class="page active" id="page-dashboard">
+                    <div class="welcome-card">
+                        <h2>Halo, <span id="welcome-name">Karyawan</span>! 👋</h2>
+                        <p>Selamat bekerja di PT. Bisatani. Jangan lupa absen tepat waktu.</p>
+                    </div>
+                </div>
+
+                <div class="page" id="page-absensi">
+                    <div class="absensi-container">
+                        <div class="absensi-header">
+                            <div class="live-clock" id="live-clock">00:00:00</div>
+                            <p>Silakan pilih aksi kehadiran Anda hari ini</p>
+                        </div>
+                        <div class="attendance-buttons">
+                            <button class="attendance-btn clock-in-btn" id="btn-clock-in">
+                                <i class="fas fa-sign-in-alt"></i><span>Masuk Kerja</span>
+                            </button>
+                            <button class="attendance-btn overtime-btn" id="btn-start-overtime" style="background:#f59e0b">
+                                <i class="fas fa-play"></i><span>Mulai Lembur</span>
+                            </button>
+                            <button class="attendance-btn overtime-btn" id="btn-end-overtime" style="background:#d97706" disabled>
+                                <i class="fas fa-stop"></i><span>Selesai Lembur</span>
+                            </button>
+                            <button class="attendance-btn clock-out-btn" id="btn-clock-out" disabled>
+                                <i class="fas fa-sign-out-alt"></i><span>Pulang Kerja</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-payroll-reports">
+                    <div class="reports-container">
+                        <div class="reports-header">
+                            <h3>Rekap Gaji (Cut-off 26 - 25)</h3>
+                            <div class="reports-filters">
+                                <select id="payroll-month">
+                                    <option value="03">Maret (26 Feb - 25 Mar)</option>
+                                    <option value="04">April (26 Mar - 25 Apr)</option>
+                                    <option value="05">Mei (26 Apr - 25 Mei)</option>
+                                </select>
+                                <button class="btn-primary" onclick="payroll.calculate()"><i class="fas fa-sync"></i> Hitung Gaji</button>
+                            </div>
+                        </div>
+                        <div class="reports-table-card">
+                            <table class="reports-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Gaji Pokok</th>
+                                        <th>Bonus Lembur</th>
+                                        <th>Denda Telat</th>
+                                        <th>BPJS</th>
+                                        <th style="color:#10b981; font-weight: bold;">Gaji Bersih</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payroll-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-settings">
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h3>Parameter Gaji PT. Bisatani</h3>
+                            <div class="form-group">
+                                <label>Bonus Lembur / Jam (Rp)</label>
+                                <input type="number" id="set-overtime-rate" value="15000">
+                            </div>
+                            <div class="form-group">
+                                <label>Denda Telat / Menit (Rp)</label>
+                                <input type="number" id="set-late-rate" value="1000">
+                            </div>
+                            <div class="form-group">
+                                <label>Potongan BPJS (Rp)</label>
+                                <input type="number" id="set-bpjs-rate" value="150000">
+                            </div>
+                            <button class="btn-primary" onclick="settings.savePayroll()"><i class="fas fa-save"></i> Simpan Tarif</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-employees">
+                    <div class="employees-container">
+                        <div class="employees-header">
+                            <h3>Data Karyawan</h3>
+                            <button class="btn-primary" id="btn-add-employee"><i class="fas fa-plus"></i> Tambah Karyawan</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="employees-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Email</th>
+                                        <th>Jabatan</th>
+                                        <th>Gaji Pokok</th>
+                                        <th>BPJS</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employees-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <nav class="bottom-nav" id="bottom-nav">
+            <a href="#" class="bottom-nav-item active" data-page="dashboard"><i class="fas fa-home"></i><span>Home</span></a>
+            <a href="#" class="bottom-nav-item" data-page="absensi"><i class="fas fa-clock"></i><span>Absen</span></a>
+            <a href="#" class="bottom-nav-item" onclick="auth.handleLogout()"><i class="fas fa-sign-out-alt"></i><span>Keluar</span></a>
+        </nav>
+    </div>
+
+    <div id="modal-employee" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Tambah Karyawan Baru</h3>
+                <button class="close-modal" onclick="document.getElementById('modal-employee').style.display='none'">&times;</button>
+            </div>
+            <form id="form-employee">
+                <input type="hidden" id="emp-id">
+                <div class="form-group">
+                    <label>Nama Lengkap</label>
+                    <input type="text" id="emp-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="emp-email" required>
+                </div>
+                <div class="form-row" style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Jabatan</label>
+                        <input type="text" id="emp-position" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Role</label>
+                        <select id="emp-role">
+                            <option value="employee">Karyawan</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row" style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Gaji Pokok (Rp)</label>
+                        <input type="number" id="emp-gaji" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>BPJS (Rp)</label>
+                        <input type="number" id="emp-bpjs" value="150000" required>
+                    </div>
+                </div>
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary" style="width: 100%;">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/absensi.js"></script>
+    <script src="js/payroll.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/admin-employees.js"></script>
+</body>
+</html>
