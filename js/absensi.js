@@ -1,105 +1,91 @@
 /**
- * Portal Karyawan - Absensi & Lembur PT. BISATANI
- * Handle Clock In, Clock Out, and Overtime
+ * Portal Karyawan - Absensi PT. BISATANI
+ * Versi Tahan Banting
  */
 
 const absensi = {
-    async init() {
-        this.bindEvents();
+    init() {
+        console.log("Absensi Initializing...");
         this.updateClock();
-        setInterval(() => this.updateClock(), 1000);
-    },
-
-    bindEvents() {
-        // Tombol Masuk
-        const btnIn = document.getElementById('btn-clock-in');
-        if (btnIn) btnIn.onclick = () => this.submit('MASUK');
-
-        // Tombol Pulang
-        const btnOut = document.getElementById('btn-clock-out');
-        if (btnOut) btnOut.onclick = () => this.submit('PULANG');
-
-        // Tombol Mulai Lembur
-        const btnStartOt = document.getElementById('btn-start-overtime');
-        if (btnStartOt) btnStartOt.onclick = () => this.submit('MULAI_LEMBUR');
-
-        // Tombol Selesai Lembur
-        const btnEndOt = document.getElementById('btn-end-overtime');
-        if (btnEndOt) btnEndOt.onclick = () => this.submit('SELESAI_LEMBUR');
+        this.bindEvents();
     },
 
     updateClock() {
-        const clockEl = document.getElementById('live-clock');
-        if (clockEl) {
-            const now = new Date();
-            clockEl.textContent = now.toLocaleTimeString('id-ID', { hour12: false });
-        }
+        // Hapus interval lama jika ada agar tidak double
+        if (window.clockInterval) clearInterval(window.clockInterval);
+        
+        window.clockInterval = setInterval(() => {
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) {
+                const now = new Date();
+                clockEl.textContent = now.toLocaleTimeString('id-ID', { hour12: false });
+            }
+        }, 1000);
+    },
+
+    bindEvents() {
+        // Menggunakan Event Delegation pada dokumen agar tombol selalu bisa diklik
+        document.onclick = (e) => {
+            const btn = e.target.closest('.attendance-btn');
+            if (!btn) return;
+
+            const id = btn.id;
+            if (id === 'btn-clock-in') this.submit('MASUK');
+            if (id === 'btn-clock-out') this.submit('PULANG');
+            if (id === 'btn-start-overtime') this.submit('MULAI_LEMBUR');
+            if (id === 'btn-end-overtime') this.submit('SELESAI_LEMBUR');
+        };
     },
 
     async submit(tipe) {
-        // 1. Ambil Data User dari Session Auth (SESUAI DENGAN auth.js ANDA)
+        // Ambil data user dari session storage
         const session = storage.get('session');
-        
         if (!session) {
-            toast.error("Sesi habis, silakan login ulang");
+            alert("Silakan login ulang.");
             return;
         }
 
-        const userId = session.id || "Unknown";
-        const userName = session.name || "Unknown";
-
-        toast.info(`Memproses ${tipe}...`);
+        // Feedback visual sederhana
+        const btn = document.activeElement;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
         try {
-            // 2. Ambil Lokasi (Opsional)
+            // GPS (Timeout cepat 3 detik)
             let koordinat = "Lokasi Mati";
             try {
-                const pos = await new Promise((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 });
+                const pos = await new Promise((res, rej) => {
+                    navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000 });
                 });
                 koordinat = `${pos.coords.latitude}, ${pos.coords.longitude}`;
-            } catch (e) { console.warn("GPS Gagal"); }
+            } catch (err) { console.warn("GPS Skip"); }
 
-            // 3. Kirim ke API (Google Sheets)
             const payload = {
                 action: 'saveAttendance',
-                userId: userId,
-                userName: userName,
+                userId: session.id,
+                userName: session.name,
                 tipe: tipe,
-                location: koordinat,
-                image: "" 
+                location: koordinat
             };
 
             const response = await api.post(payload);
 
             if (response.success) {
-                toast.success(`Berhasil! ${userName} tercatat ${tipe}`);
-                this.updateButtonStates(tipe);
+                alert(`Absen ${tipe} Berhasil!`);
+                // Refresh data/status jika ada
+                if (window.router) window.router.navigate('absensi');
             } else {
-                toast.error("Gagal: " + response.error);
+                alert("Gagal simpan ke Sheets: " + response.error);
             }
         } catch (error) {
-            toast.error("Terjadi kesalahan koneksi");
-            console.error(error);
-        }
-    },
-
-    updateButtonStates(tipe) {
-        // Logika sederhana untuk mengaktifkan/matikan tombol setelah klik
-        if (tipe === 'MASUK') {
-            document.getElementById('btn-clock-in').disabled = true;
-            document.getElementById('btn-clock-out').disabled = false;
-        } else if (tipe === 'PULANG') {
-            document.getElementById('btn-clock-out').disabled = true;
-        } else if (tipe === 'MULAI_LEMBUR') {
-            document.getElementById('btn-start-overtime').disabled = true;
-            document.getElementById('btn-end-overtime').disabled = false;
-        } else if (tipe === 'SELESAI_LEMBUR') {
-            document.getElementById('btn-end-overtime').disabled = true;
-            document.getElementById('btn-start-overtime').disabled = false;
+            alert("Kesalahan koneksi ke server.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     }
 };
 
-// Inisialisasi saat halaman absensi dibuka
+// Pastikan fungsi inisialisasi tersedia di window
 window.initAbsensi = () => absensi.init();
