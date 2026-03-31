@@ -3,141 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
     <title>Portal Karyawan | PT. Bisatani</title>
     
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/absensi.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/mobile.css">
     <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/face-rec.css">
     <link rel="stylesheet" href="css/modal.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        /* Perbaikan Layout agar tidak tertumpuk seperti di gambar */
+        /* Proteksi Layout */
         .hidden { display: none !important; }
-        .page { display: none; }
-        .page.active { display: block; }
-        #app-container { display: flex; min-height: 100vh; }
-        .main-content { flex: 1; padding: 20px; background: #f4f7f6; }
+        .modal { display: none !important; }
+        .modal[style*="display: flex"] { display: flex !important; }
         
-        /* Style Filter Rekap */
-        .filter-row { display: flex; gap: 10px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd; align-items: flex-end; }
-        .filter-item { display: flex; flex-direction: column; gap: 4px; }
-        .filter-item label { font-size: 11px; font-weight: bold; color: #666; }
-        .filter-item input, .filter-item select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        /* Merapikan Filter Section agar sejajar */
+        .filter-row { 
+            display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; 
+            padding: 15px; border-radius: 10px; margin-bottom: 15px; 
+            align-items: flex-end; border: 1px solid #e2e8f0; 
+        }
+        .filter-item { display: flex; flex-direction: column; gap: 5px; }
+        .filter-item label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .filter-item input, .filter-item select { 
+            padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; 
+            font-size: 13px; min-width: 140px; background: #fff; 
+        }
     </style>
 </head>
 
 <body>
-    <div id="toast-container"></div>
+    <div id="toast-container" class="toast-container"></div>
 
     <div id="login-container" class="login-container">
-        <div class="login-form-container">
-            <h1 style="text-align:center; color:#10b981; margin-bottom:20px;">PT. BISATANI</h1>
-            <form id="login-form" onsubmit="return false;">
-                <div class="input-group">
-                    <input type="text" id="login-email" placeholder="ID Karyawan / Email" required>
+        <div class="login-left">
+            <div class="login-animation">
+                <div class="central-logo"><div class="logo-core"><i class="fas fa-leaf"></i></div></div>
+                <h1 class="company-name">PT. BISATANI</h1>
+                <p class="tagline">Sistem Absensi & Payroll Terintegrasi</p>
+            </div>
+        </div>
+        <div class="login-right">
+            <div class="login-form-container">
+                <div class="login-header">
+                    <h2>Selamat Datang</h2>
+                    <p>Silakan login untuk mulai bekerja</p>
                 </div>
-                <div class="input-group">
-                    <input type="password" id="login-password" placeholder="Password" required>
-                </div>
-                <div class="role-selector" style="margin: 15px 0;">
-                    <label><input type="radio" name="role" value="employee" checked> Karyawan</label>
-                    <label style="margin-left:15px;"><input type="radio" name="role" value="admin"> Admin</label>
-                </div>
-                <button type="submit" class="btn-login" style="width:100%;">LOGIN</button>
-            </form>
+                <form id="login-form" class="login-form" onsubmit="return false;">
+                    <div class="input-group">
+                        <label for="login-email">ID Karyawan / Email</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="login-email" placeholder="Masukkan ID atau Email" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="login-password" placeholder="Masukkan password" required>
+                            <button type="button" class="toggle-password" id="toggle-password"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="role-selector">
+                        <div class="role-options">
+                            <label class="role-option">
+                                <input type="radio" name="role" value="employee" checked>
+                                <span class="role-card"><i class="fas fa-user"></i><span>Karyawan</span></span>
+                            </label>
+                            <label class="role-option">
+                                <input type="radio" name="role" value="admin">
+                                <span class="role-card"><i class="fas fa-user-shield"></i><span>Admin</span></span>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-login"><span>Login</span><i class="fas fa-arrow-right"></i></button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div id="app-container" class="hidden">
-        <aside class="sidebar" style="width: 250px; background: #fff; border-right: 1px solid #eee;">
-            <div style="padding: 20px; font-weight: bold; font-size: 20px; color: #10b981;">BISATANI</div>
+    <div id="app-container" class="app-container hidden">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo"><i class="fas fa-seedling"></i><span class="sidebar-brand">BISATANI</span></div>
+            </div>
             
-            <nav id="employee-menu" class="sidebar-nav">
-                <div class="nav-item active" data-page="dashboard" style="cursor:pointer; padding:12px 20px;"><i class="fas fa-home"></i> Dashboard</div>
-                <div class="nav-item" data-page="absensi" style="cursor:pointer; padding:12px 20px;"><i class="fas fa-clock"></i> Absensi</div>
+            <nav class="sidebar-nav employee-menu" id="employee-menu">
+                <div class="nav-section">
+                    <span class="nav-label">Menu Utama</span>
+                    <ul class="nav-list">
+                        <li class="nav-item active" data-page="dashboard"><a href="#" class="nav-link"><i class="fas fa-home"></i><span>Dashboard</span></a></li>
+                        <li class="nav-item" data-page="absensi"><a href="#" class="nav-link"><i class="fas fa-clock"></i><span>Absensi & Lembur</span></a></li>
+                    </ul>
+                </div>
             </nav>
 
-            <nav id="admin-menu-nav" class="sidebar-nav hidden">
-                <div class="nav-item" data-page="admin-dashboard" style="cursor:pointer; padding:12px 20px;"><i class="fas fa-chart-line"></i> Admin Dash</div>
-                <div class="nav-item" data-page="attendance-reports" style="cursor:pointer; padding:12px 20px;"><i class="fas fa-file-invoice"></i> Rekap Absen</div>
-                <div class="nav-item" data-page="employees" style="cursor:pointer; padding:12px 20px;"><i class="fas fa-users"></i> Data Karyawan</div>
+            <nav class="sidebar-nav admin-menu hidden" id="admin-menu-nav">
+                <div class="nav-section">
+                    <span class="nav-label">Panel Admin</span>
+                    <ul class="nav-list">
+                        <li class="nav-item" data-page="admin-dashboard"><a href="#" class="nav-link"><i class="fas fa-chart-line"></i><span>Dashboard Admin</span></a></li>
+                        <li class="nav-item" data-page="employees"><a href="#" class="nav-link"><i class="fas fa-users"></i><span>Data Karyawan</span></a></li>
+                    </ul>
+                </div>
+                <div class="nav-section">
+                    <span class="nav-label">Laporan & Gaji</span>
+                    <ul class="nav-list">
+                        <li class="nav-item" data-page="attendance-reports"><a href="#" class="nav-link"><i class="fas fa-file-invoice"></i><span>Rekap Absensi</span></a></li>
+                        <li class="nav-item" data-page="payroll-reports"><a href="#" class="nav-link"><i class="fas fa-wallet"></i><span>Payroll (26 - 25)</span></a></li>
+                        <li class="nav-item" data-page="settings"><a href="#" class="nav-link"><i class="fas fa-cog"></i><span>Pengaturan Gaji</span></a></li>
+                    </ul>
+                </div>
             </nav>
 
-            <div style="position:absolute; bottom:20px; padding:20px; border-top:1px solid #eee; width:210px;">
-                <div id="user-name" style="font-weight:bold;">Nama User</div>
-                <div id="user-role" style="font-size:12px; color:#666; margin-bottom:10px;">Role</div>
-                <button id="btn-logout" style="background:none; border:1px solid #ef4444; color:#ef4444; padding:5px 10px; border-radius:4px; cursor:pointer; width:100%;">Logout</button>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar"><img src="https://ui-avatars.com/api/?name=User" id="user-avatar"></div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">Memuat...</span>
+                        <span class="user-role" id="user-role">Karyawan</span>
+                    </div>
+                    <button class="btn-logout" id="btn-logout"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
             </div>
         </aside>
 
         <main class="main-content">
-            <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-                <h2 id="page-title">Dashboard</h2>
-                <div id="current-time" style="text-align:right;">--:--:--</div>
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title" id="page-title">Dashboard</h1>
+                </div>
+                <div class="top-bar-right">
+                    <div class="current-time" id="current-time">
+                        <span class="time">00:00:00</span>
+                        <span class="date">-- --- ----</span>
+                    </div>
+                </div>
             </header>
 
-            <div id="page-content">
+            <div class="page-content" id="page-content">
                 <div class="page active" id="page-dashboard">
-                    <div class="welcome-card" style="background:#fff; padding:30px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                    <div class="welcome-card">
                         <h2>Halo, <span id="welcome-name">Karyawan</span>! 👋</h2>
-                        <p>Selamat bekerja, jangan lupa absen tepat waktu ya.</p>
+                        <p>Selamat bekerja di PT. Bisatani. Jangan lupa absen tepat waktu.</p>
                     </div>
                 </div>
 
                 <div class="page" id="page-absensi">
-                    <div style="background:#fff; padding:30px; border-radius:12px; text-align:center;">
-                        <div id="live-clock" style="font-size:40px; font-weight:bold; color:#10b981; margin-bottom:20px;">00:00:00</div>
-                        <div style="margin:20px auto; width:320px; height:240px; background:#000; border-radius:12px; overflow:hidden;">
-                            <video id="webcam-preview" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scaleX(-1);"></video>
-                        </div>
-                        <p id="location-text" style="color:#10b981; font-weight:bold; margin-bottom:20px;"><i class="fas fa-map-marker-alt"></i> Mencari lokasi...</p>
-                        <div id="attendance-btns" style="display:flex; justify-content:center; gap:15px; min-height:50px;">
-                             <p style="color:#999;">Memuat tombol...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="page" id="page-attendance-reports">
-                    <div class="filter-row">
-                        <div class="filter-item"><label>Mulai</label><input type="date" id="report-start-date"></div>
-                        <div class="filter-item"><label>Sampai</label><input type="date" id="report-end-date"></div>
-                        <div class="filter-item">
-                            <label>Tipe</label>
-                            <select id="report-type-filter">
-                                <option value="">Semua Tipe</option>
-                                <option value="MASUK">MASUK</option>
-                                <option value="PULANG">PULANG</option>
-                                <option value="MULAI_LEMBUR">MULAI LEMBUR</option>
-                                <option value="SELESAI_LEMBUR">SELESAI LEMBUR</option>
-                            </select>
-                        </div>
-                        <div class="filter-item"><label>Karyawan</label><select id="report-employee-filter"><option value="">Semua</option></select></div>
-                    </div>
-                    <div id="overtime-summary-card" class="hidden" style="background:#fffbeb; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #fef3c7;">
-                        Total Lembur: <span id="total-overtime-hours" style="font-weight:bold;">0</span> Jam
-                    </div>
-                    <div style="background:#fff; border-radius:12px; overflow-x:auto;">
-                        <table style="width:100%; border-collapse:collapse;">
-                            <thead style="background:#f8fafc; text-align:left;">
-                                <tr><th style="padding:12px;">No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Ket</th><th>Mulai</th><th>Selesai</th><th>Total</th></tr>
-                            </thead>
-                            <tbody id="attendance-reports-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script src="js/api.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/router.js"></script>
-    <script src="js/absensi.js"></script>
-    <script src="js/admin-reports.js"></script>
-</body>
-</html>
+                    <div class="absensi-container">
+                        <div class="absensi-header">
+                            <div class="live-clock" id="live-clock">00:00:00</div>
+                            <div class="camera-box" style="margin: 15px auto; width: 280px; height: 210px; background: #000; border-radius: 12px; overflow: hidden; border: 3px solid #10b981; position: relative;">
+                                <video id="webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                            </div>
+                            <p id="location-text" style="font-size: 0.85rem; color: #10b981;"><i class="fas
