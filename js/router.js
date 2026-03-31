@@ -1,15 +1,14 @@
 /**
  * Portal Karyawan - Router PT. BISATANI
- * Mengatur perpindahan halaman (SPA)
+ * Mengatur perpindahan halaman (SPA) & Inisialisasi Halaman
  */
 
 const router = {
     currentPage: 'dashboard',
-    // Daftar rute yang aktif di PT. Bisatani
     routes: ['dashboard', 'absensi', 'admin-dashboard', 'employees', 'attendance-reports', 'payroll-reports', 'settings'],
     
     init() {
-        // Menangani klik pada menu navigasi
+        // 1. Menangani klik pada menu navigasi (Sidebar)
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -17,15 +16,27 @@ const router = {
                 if (page) this.navigate(page);
             });
         });
+
+        // 2. Menangani klik pada navigasi bawah (Mobile)
+        document.querySelectorAll('.bottom-nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                // Jangan cegah default jika itu tombol logout
+                if (item.getAttribute('onclick')) return;
+                
+                e.preventDefault();
+                const page = item.dataset.page;
+                if (page) this.navigate(page);
+            });
+        });
         
-        // Menangani tombol back/forward browser
+        // 3. Menangani tombol back/forward browser
         window.addEventListener('popstate', (e) => {
             if (e.state && e.state.page) {
                 this.showPage(e.state.page, false);
             }
         });
         
-        // Cek halaman terakhir yang dibuka dari storage
+        // 4. Cek halaman terakhir atau default
         const storedPage = storage.get('currentPage');
         if (storedPage && this.routes.includes(storedPage)) {
             this.showPage(storedPage, false);
@@ -43,7 +54,6 @@ const router = {
     showPage(page, pushState = true) {
         this.currentPage = page;
         
-        // Judul halaman di tab browser
         const titles = {
             dashboard: 'Dashboard',
             absensi: 'Absensi & Lembur',
@@ -56,8 +66,8 @@ const router = {
         
         document.title = `${titles[page]} - PT. BISATANI`;
         
-        // Update status aktif di Sidebar
-        document.querySelectorAll('.nav-item').forEach(item => {
+        // Update status aktif di Sidebar & Bottom Nav
+        document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(item => {
             item.classList.remove('active');
             if (item.dataset.page === page) item.classList.add('active');
         });
@@ -67,33 +77,36 @@ const router = {
         const targetPage = document.getElementById(`page-${page}`);
         if (targetPage) targetPage.classList.add('active');
         
-        // Update judul di Header atas
         const pageTitle = document.getElementById('page-title');
         if (pageTitle) pageTitle.textContent = titles[page];
         
-        // Simpan ke history browser
         if (pushState) {
             history.pushState({ page }, titles[page], `#${page}`);
         }
         
-        // Panggil fungsi inisialisasi halaman jika ada
+        // Jalankan fungsi khusus per halaman
         this.triggerPageInit(page);
         
-        // Scroll kembali ke atas setiap pindah halaman
         const contentArea = document.querySelector('.page-content');
         if (contentArea) contentArea.scrollTop = 0;
     },
     
     triggerPageInit(page) {
+        console.log("Inisialisasi halaman:", page);
         switch(page) {
             case 'dashboard':
                 if (window.initDashboard) window.initDashboard();
                 break;
             case 'absensi':
+                // Pastikan fungsi absen dibangunkan setiap kali halaman dibuka
                 if (window.initAbsensi) window.initAbsensi();
                 break;
+            case 'employees':
+                // REVISI: Tambahkan inisialisasi Data Karyawan
+                if (window.initEmployees) window.initEmployees();
+                break;
             case 'payroll-reports':
-                // Inisialisasi halaman payroll jika diperlukan
+                // Inisialisasi payroll jika ada fungsi rekap
                 break;
             case 'settings':
                 if (window.settings && window.settings.init) window.settings.init();
@@ -102,7 +115,6 @@ const router = {
     }
 };
 
-// Inisialisasi router saat DOM siap
 document.addEventListener('DOMContentLoaded', () => {
     router.init();
 });
