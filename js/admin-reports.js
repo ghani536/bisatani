@@ -2,18 +2,33 @@ const adminReports = {
     attendanceData: [],
     filters: { employee: '', startDate: '', endDate: '', type: '' },
 
-    async init() {
+   async init() {
+        console.log("AdminReports: Mengatur periode cut-off...");
+        
         const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth() - 1, 26);
-        const end = new Date(now.getFullYear(), now.getMonth(), 25);
+        const currentDay = now.getDate();
+        let start, end;
+
+        // LOGIKA CUT-OFF 26 - 25
+        if (currentDay >= 26) {
+            // Jika tgl 26 ke atas, periode adalah 26 bulan ini s/d 25 bulan depan
+            start = new Date(now.getFullYear(), now.getMonth(), 26);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 25);
+        } else {
+            // Jika di bawah tgl 26, periode adalah 26 bulan lalu s/d 25 bulan ini
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 26);
+            end = new Date(now.getFullYear(), now.getMonth(), 25);
+        }
         
         const startIn = document.getElementById('report-start-date');
         const endIn = document.getElementById('report-end-date');
         const typeIn = document.getElementById('report-type-filter');
         
-        if (startIn && !startIn.value) startIn.value = start.toISOString().split('T')[0];
-        if (endIn && !endIn.value) endIn.value = end.toISOString().split('T')[0];
+        // Isi otomatis ke input HTML (format YYYY-MM-DD)
+        if (startIn) startIn.value = start.toISOString().split('T')[0];
+        if (endIn) endIn.value = end.toISOString().split('T')[0];
 
+        // Update variabel filter internal
         this.filters.startDate = startIn ? startIn.value : '';
         this.filters.endDate = endIn ? endIn.value : '';
         this.filters.type = typeIn ? typeIn.value : '';
