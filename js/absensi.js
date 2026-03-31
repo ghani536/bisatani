@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi PT. BISATANI
- * Versi Final: Fix Jam 1899, Logic Urutan Ketat, & Disabled Button
+ * Optimasi: Jalur Cepat Hardware & Pencegahan Re-init Kamera
  */
 
 const absensi = {
@@ -9,19 +9,26 @@ const absensi = {
 
     async init() {
         console.log("Absensi Initializing...");
-        this.updateClock();
         
-        // 1. Tampilkan tombol & status terbaru
-        await this.renderButtons();
-
-        // 2. Aktifkan fitur pendukung di background
-        this.setupCamera();
+        // 1. JALUR CEPAT: Nyalakan jam dan hardware dulu (Tanpa await agar tidak menunggu)
+        this.updateClock();
+        this.setupCamera(); 
         this.getReadableLocation();
+
+        // 2. JALUR DATA: Sinkronisasi tombol dengan server
+        await this.renderButtons();
     },
 
     async setupCamera() {
         const video = document.getElementById('webcam-preview');
         if (!video) return;
+
+        // PROTEKSI: Jika kamera sudah aktif (dari proses login), jangan minta akses lagi
+        if (this.stream && this.stream.active) {
+            video.srcObject = this.stream;
+            return;
+        }
+
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { width: 320, height: 240, facingMode: "user" } 
@@ -29,26 +36,50 @@ const absensi = {
             video.srcObject = this.stream;
         } catch (err) {
             console.warn("Kamera tidak tersedia:", err);
+            const box = video.parentElement;
+            if(box) box.style.background = "#333";
         }
     },
 
+    // ... (Fungsi getReadableLocation tetap sama seperti milik Anda) ...
     async getReadableLocation() {
         const locText = document.getElementById('location-text');
         try {
             const pos = await new Promise((res, rej) => {
-                navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000 });
+                navigator.geolocation.getCurrentPosition(res, rej, { 
+                    enableHighAccuracy: true, 
+                    timeout: 5000 
+                });
             });
             
+            // Simpan koordinat cadangan jika reverse geocode gagal
+            this.locationName = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`)
                 .then(r => r.json())
                 .then(data => {
-                    this.locationName = data.display_name.split(',').slice(0, 3).join(',');
+                    if(data.display_name) {
+                        this.locationName = data.display_name.split(',').slice(0, 3).join(',');
+                        if (locText) locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.locationName}`;
+                    }
+                }).catch(() => {
                     if (locText) locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.locationName}`;
-                }).catch(() => {});
+                });
         } catch (e) {
             if (locText) locText.innerHTML = `<i class="fas fa-exclamation-triangle"></i> GPS tidak aktif`;
         }
     },
+
+    // ... (Fungsi renderButtons, submit, dan updateClock tetap gunakan milik Anda) ...
+    // HANYA PASTIKAN: Di dalam renderButtons(), pastikan ada pengecekan elemen
+    async renderButtons() {
+        const btnContainer = document.getElementById('attendance-btns');
+        const session = storage.get('session');
+        
+        // JIKA sedang di halaman Admin, jangan jalankan sinkronisasi absen
+        if (!btnContainer || !session || session.role === 'admin') return;
+
+        btnContainer.innerHTML = '<div style="text-align:center; padding:15px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Data...</div>';
 
     async renderButtons() {
         const btnContainer = document.getElementById('attendance-btns');
