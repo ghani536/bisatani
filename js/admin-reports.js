@@ -1,25 +1,31 @@
+/**
+ * Portal Karyawan - Admin Reports PT. BISATANI
+ * Fitur: Filter Karyawan, Tanggal, dan Tipe Absensi (FIXED)
+ */
 const adminReports = {
     attendanceData: [],
-    filters: { employee: '', startDate: '', endDate: '', type: '' },
+    filters: { 
+        employee: '', 
+        startDate: '', 
+        endDate: '',
+        type: '' 
+    },
 
-   async init() {
+    async init() {
         console.log("AdminReports: Mengatur periode cut-off 26-25...");
         
         const now = new Date();
         const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth(); // Maret adalah 2
+        const currentMonth = now.getMonth(); 
         const currentDate = now.getDate();
 
         let start, end;
 
-        // LOGIKA CUT-OFF TEGAS
+        // LOGIKA CUT-OFF 26 s/d 25
         if (currentDate >= 26) {
-            // Periode: 26 Bulan Ini s/d 25 Bulan Depan
-            // Jam 12:00 untuk menghindari pergeseran zona waktu ke hari sebelumnya
             start = new Date(currentYear, currentMonth, 26, 12, 0, 0);
             end = new Date(currentYear, currentMonth + 1, 25, 12, 0, 0);
         } else {
-            // Periode: 26 Bulan Lalu s/d 25 Bulan Ini
             start = new Date(currentYear, currentMonth - 1, 26, 12, 0, 0);
             end = new Date(currentYear, currentMonth, 25, 12, 0, 0);
         }
@@ -27,18 +33,16 @@ const adminReports = {
         const startIn = document.getElementById('report-start-date');
         const endIn = document.getElementById('report-end-date');
         const typeIn = document.getElementById('report-type-filter');
-        
-        // Konversi ke format YYYY-MM-DD yang dipahami <input type="date">
+        const empIn = document.getElementById('report-employee-filter');
+
+        // Fungsi bantu format tanggal ke YYYY-MM-DD
         const formatDate = (date) => {
             const d = new Date(date);
-            let month = '' + (d.getMonth() + 1);
+            let m = '' + (d.getMonth() + 1);
             let day = '' + d.getDate();
-            const year = d.getFullYear();
-
-            if (month.length < 2) month = '0' + month;
+            if (m.length < 2) m = '0' + m;
             if (day.length < 2) day = '0' + day;
-
-            return [year, month, day].join('-');
+            return [d.getFullYear(), m, day].join('-');
         };
 
         if (startIn) startIn.value = formatDate(start);
@@ -47,6 +51,7 @@ const adminReports = {
         this.filters.startDate = startIn ? startIn.value : '';
         this.filters.endDate = endIn ? endIn.value : '';
         this.filters.type = typeIn ? typeIn.value : '';
+        this.filters.employee = empIn ? empIn.value : '';
 
         await this.loadData();
         this.bindEvents();
@@ -54,20 +59,23 @@ const adminReports = {
 
     async loadData() {
         const tbody = document.getElementById('attendance-reports-body');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat...</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data...</td></tr>';
         
         try {
             const res = await api.post({ action: 'getAllAttendanceData' });
             if (res.success) {
                 this.attendanceData = res.data || [];
-                console.log("Data diterima dari server:", this.attendanceData); // Cek data di F12
                 this.populateEmployeeFilter();
                 this.renderTable();
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error(e); 
+            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:red;">Gagal memuat data server</td></tr>';
+        }
     },
 
     bindEvents() {
+        // Pantau semua perubahan pada filter
         const ids = ['report-employee-filter', 'report-start-date', 'report-end-date', 'report-type-filter'];
         ids.forEach(id => {
             const el = document.getElementById(id);
@@ -91,67 +99,68 @@ const adminReports = {
                           names.map(n => `<option value="${n}">${n}</option>`).join('');
     },
 
-  renderTable() {
+    renderTable() {
         const tbody = document.getElementById('attendance-reports-body');
         if (!tbody) return;
 
-        console.log("Filters aktif:", this.filters); // Cek filter di Console F12
-
+        let totalMenit = 0;
+        
         const filtered = this.attendanceData.filter(row => {
-            // 1. NORMALISASI TANGGAL (Ambil YYYY-MM-DD saja)
-            let rowDate = "";
-            if (row.timestamp) {
-                // Jika formatnya ISO (2026-03-31T...) atau string biasa
-                rowDate = String(row.timestamp).split('T')[0].trim();
-            }
-
-            // 2. NORMALISASI TIPE (Hapus spasi, jadikan huruf besar)
+            // Normalisasi Tanggal (Hanya ambil YYYY-MM-DD)
+            const rowDate = (row.timestamp) ? String(row.timestamp).split('T')[0] : '';
+            
+            // Normalisasi Tipe (PENTING untuk Filter Tipe)
             const rowType = String(row.tipe || '').toUpperCase().trim();
             const filterType = String(this.filters.type || '').toUpperCase().trim();
 
-            // 3. LOGIKA PENYARINGAN
             const matchName = !this.filters.employee || row.nama === this.filters.employee;
             const matchStart = !this.filters.startDate || rowDate >= this.filters.startDate;
             const matchEnd = !this.filters.endDate || rowDate <= this.filters.endDate;
+            
+            // LOGIKA FILTER TIPE (Jika filter kosong = lolos, jika diisi harus sama persis)
             const matchType = !filterType || rowType === filterType;
             
             return matchName && matchStart && matchEnd && matchType;
         });
 
-        // Tampilkan pesan jika hasil filter kosong
-        if (filtered.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="10" style="text-align:center; padding:50px; color:#94a3b8;">
-                        <i class="fas fa-search" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
-                        Tidak ada data yang cocok dengan filter ini.<br>
-                        <small>Coba ubah rentang tanggal atau pilih "Semua Tipe".</small>
-                    </td>
-                </tr>`;
-            const sumCard = document.getElementById('overtime-summary-card');
-            if (sumCard) sumCard.style.display = 'none';
-            return;
+        // Hitung total jam lembur jika filter karyawan aktif
+        filtered.forEach(row => {
+            if (row.totaljam && row.totaljam !== '-') {
+                const val = parseFloat(row.totaljam);
+                if (!isNaN(val)) totalMenit += val * 60;
+            }
+        });
+
+        // Update Ringkasan Lembur
+        const sumCard = document.getElementById('overtime-summary-card');
+        if (this.filters.employee && sumCard && filtered.length > 0) {
+            sumCard.style.display = 'flex';
+            const jam = Math.floor(totalMenit/60);
+            const menit = Math.round(totalMenit%60);
+            document.getElementById('total-overtime-hours').innerText = `${jam} Jam ${menit} Menit`;
+        } else if (sumCard) {
+            sumCard.style.display = 'none';
         }
 
-        // Jalankan fungsi render baris jika ada data
-        this.displayData(filtered, tbody);
-    },
-
-    displayData(data, tbody) {
         const formatJam = (v) => {
             if (!v || v === '-') return '-';
             return String(v).includes('T') ? String(v).split('T')[1].substring(0, 5) : String(v).substring(0, 5);
         };
 
-        tbody.innerHTML = data.map((row, index) => {
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">Tidak ada data yang cocok</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map((row, index) => {
             const d = row.timestamp ? new Date(row.timestamp) : null;
             return `<tr>
                 <td style="text-align:center;">${index + 1}</td>
                 <td>${d ? d.toLocaleDateString('id-ID') : '-'}<br><small>${d ? d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</small></td>
                 <td><strong>${row.nama || '-'}</strong></td>
-                <td><span class="badge-tipe">${String(row.tipe).toUpperCase()}</span></td>
-                <td style="font-size:10px; max-width:150px; overflow:hidden; text-overflow:ellipsis;">${row.lokasi || '-'}</td>
-                <td style="text-align:center;">${row.foto ? `<img src="${row.foto}" class="img-preview" onclick="window.open('${row.foto}')">` : '-'}</td>
+                <td><span style="padding:4px 8px; border-radius:12px; font-size:10px; background:#eee; font-weight:bold;">${String(row.tipe).toUpperCase().replace('_', ' ')}</span></td>
+                <td style="font-size:10px;">${row.lokasi || '-'}</td>
+                <td style="text-align:center;">${row.foto ? `<img src="${row.foto}" style="width:30px;height:30px;object-fit:cover;border-radius:4px;" onclick="window.open('${row.foto}')">` : '-'}</td>
                 <td><small>${row.statustelat || '-'}</small></td>
                 <td style="text-align:center;">${formatJam(row.mulailembur)}</td>
                 <td style="text-align:center;">${formatJam(row.selesailembur)}</td>
