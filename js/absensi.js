@@ -1,121 +1,114 @@
 /**
- * Portal Karyawan - Absensi PT. BISATANI
- * Fitur: Log-based, GPS, & Auto Photo Capture
+ * Portal Karyawan - Absensi Pintar PT. BISATANI
  */
 
 const absensi = {
     stream: null,
+    currentLocationName: "Lokasi tidak diketahui",
 
     async init() {
-        console.log("Absensi Initializing...");
         this.updateClock();
-        this.bindEvents();
-        await this.setupCamera(); // Siapkan kamera saat halaman dibuka
+        await this.setupCamera();
+        await this.getReadableLocation();
+        await this.renderButtons(); // Atur tombol berdasarkan status terakhir
     },
 
     async setupCamera() {
+        const video = document.getElementById('webcam-preview');
         try {
-            // Kita tidak perlu menampilkan video di layar jika ingin praktis,
-            // cukup minta izin akses kamera di awal.
-            this.stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+            this.stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+            if (video) video.srcObject = this.stream;
         } catch (err) {
-            console.warn("Kamera tidak diizinkan atau tidak tersedia.");
+            console.error("Kamera gagal:", err);
+            alert("Mohon izinkan akses kamera.");
+        }
+    },
+
+    async getReadableLocation() {
+        const locText = document.getElementById('location-text');
+        try {
+            const pos = await new Promise((res, rej) => {
+                navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 });
+            });
+            
+            // Reverse Geocoding menggunakan API gratis Nominatim (OpenStreetMap)
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+            const data = await response.json();
+            
+            // Ambil nama jalan atau desa/kota
+            this.currentLocationName = data.display_name.split(',').slice(0, 3).join(',');
+            if (locText) locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.currentLocationName}`;
+        } catch (e) {
+            if (locText) locText.textContent = "GPS tidak terdeteksi";
+        }
+    },
+
+    async renderButtons() {
+        const btnContainer = document.getElementById('attendance-btns');
+        const session = storage.get('session');
+        
+        // Ambil riwayat absen terakhir hari ini dari API
+        const res = await api.post({ action: 'getTodayAttendance', userId: session.id });
+        const logs = res.data || []; // Asumsi logs adalah array aktivitas hari ini
+
+        let html = '';
+        
+        // LOGIKA FILTER TOMBOL (Alur Kerja Bisatani)
+        const hasMasuk = logs.some(l => l.tipe === 'MASUK');
+        const hasPulang = logs.some(l => l.tipe === 'PULANG');
+        const isLembur = logs.some(l => l.tipe === 'MULAI_LEMBUR') && !logs.some(l => l.tipe === 'SELESAI_LEMBUR');
+
+        if (!hasMasuk) {
+            html = `<button class="attendance-btn clock-in-btn" onclick="absensi.submit('MASUK')"><i class="fas fa-sign-in-alt"></i><span>Masuk Kerja</span></button>`;
+        } else if (hasMasuk && !hasPulang && !isLembur) {
+            html = `
+                <button class="attendance-btn clock-out-btn" onclick="absensi.submit('PULANG')"><i class="fas fa-sign-out-alt"></i><span>Pulang Kerja</span></button>
+                <button class="attendance-btn" style="background:#f59e0b" onclick="absensi.submit('MULAI_LEMBUR')"><i class="fas fa-play"></i><span>Mulai Lembur</span></button>
+            `;
+        } else if (isLembur) {
+            html = `<button class="attendance-btn" style="background:#d97706" onclick="absensi.submit('SELESAI_LEMBUR')"><i class="fas fa-stop"></i><span>Selesai Lembur</span></button>`;
+        } else if (hasPulang) {
+            html = `<div class="status-info">Tugas hari ini selesai. Sampai jumpa besok!</div>`;
+        }
+
+        btnContainer.innerHTML = html;
+    },
+
+    async submit(tipe) {
+        const session = storage.get('session');
+        if (!session) return alert("Login ulang!");
+
+        // Ambil Foto dari Video element
+        const video = document.getElementById('webcam-preview');
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 240;
+        canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+        const photo = canvas.toDataURL('image/jpeg', 0.6);
+
+        toast.info(`Mencatat ${tipe}...`);
+
+        const payload = {
+            action: 'saveAttendance',
+            userId: session.id,
+            userName: session.name,
+            tipe: tipe,
+            location: this.currentLocationName,
+            image: photo
+        };
+
+        const response = await api.post(payload);
+        if (response.success) {
+            toast.success("Berhasil!");
+            this.renderButtons(); // Refresh tombol
         }
     },
 
     updateClock() {
-        if (window.clockInterval) clearInterval(window.clockInterval);
-        window.clockInterval = setInterval(() => {
+        setInterval(() => {
             const clockEl = document.getElementById('live-clock');
-            if (clockEl) {
-                const now = new Date();
-                clockEl.textContent = now.toLocaleTimeString('id-ID', { hour12: false });
-            }
+            if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('id-ID');
         }, 1000);
-    },
-
-    bindEvents() {
-        document.onclick = (e) => {
-            const btn = e.target.closest('.attendance-btn');
-            if (!btn) return;
-
-            const id = btn.id;
-            if (id === 'btn-clock-in') this.submit('MASUK');
-            if (id === 'btn-clock-out') this.submit('PULANG');
-            if (id === 'btn-start-overtime') this.submit('MULAI_LEMBUR');
-            if (id === 'btn-end-overtime') this.submit('SELESAI_LEMBUR');
-        };
-    },
-
-    async takeSnapshot() {
-        if (!this.stream) return "";
-        try {
-            const video = document.createElement('video');
-            video.srcObject = this.stream;
-            await video.play();
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 320;
-            canvas.height = 240;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            return canvas.toDataURL('image/jpeg', 0.7); // Kembalikan string Base64
-        } catch (e) {
-            return "";
-        }
-    },
-
-    async submit(tipe) {
-        // Ambil session (Pastikan Logout & Login ulang agar id tidak Unknown)
-        const session = storage.get('session');
-        if (!session || !session.id) {
-            alert("ID User tidak ditemukan. Silakan LOGOUT lalu LOGIN kembali.");
-            return;
-        }
-
-        const btn = document.activeElement;
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-
-        try {
-            // 1. Ambil Foto (Proses di belakang layar)
-            const photoBase64 = await this.takeSnapshot();
-
-            // 2. Ambil GPS (Timeout 3 detik)
-            let koordinat = "Lokasi Mati";
-            try {
-                const pos = await new Promise((res, rej) => {
-                    navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000 });
-                });
-                koordinat = `${pos.coords.latitude}, ${pos.coords.longitude}`;
-            } catch (err) { console.warn("GPS Skip"); }
-
-            const payload = {
-                action: 'saveAttendance',
-                userId: session.id,
-                userName: session.name,
-                tipe: tipe,
-                location: koordinat,
-                image: photoBase64 // Foto terkirim dalam format teks base64
-            };
-
-            const response = await api.post(payload);
-
-            if (response.success) {
-                alert(`Absen ${tipe} Berhasil!\nStatus: ${response.message || 'Tercatat'}`);
-                if (window.router) window.router.navigate('absensi');
-            } else {
-                alert("Gagal: " + response.error);
-            }
-        } catch (error) {
-            alert("Terjadi kesalahan sistem.");
-            console.error(error);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
     }
 };
 
