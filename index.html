@@ -216,7 +216,34 @@
                 <div class="page" id="page-admin-dashboard"></div>
                 <div class="page" id="page-payroll-reports"></div>
                 <div class="page" id="page-settings"></div>
-                <div class="page" id="page-employees"></div>
+                <div class="page" id="page-employees">
+    <div class="employees-container" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div class="employees-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #1e293b;"><i class="fas fa-users"></i> Data Karyawan</h3>
+            <button class="btn-primary" id="btn-add-employee" style="background: #10b981; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-plus"></i> Tambah Karyawan
+            </button>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="reports-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding: 12px;">No</th>
+                        <th>Nama / ID</th>
+                        <th>Email</th>
+                        <th>Dept</th>
+                        <th>Jabatan</th>
+                        <th>Gaji Pokok</th>
+                        <th style="text-align: center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="employees-table-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
             </div>
         </main>
         
