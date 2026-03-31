@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi PT. BISATANI
- * Optimasi: Jalur Cepat Hardware & Pencegahan Re-init Kamera
+ * Versi Final: Jalur Cepat Hardware & Fix Syntax Error
  */
 
 const absensi = {
@@ -8,14 +8,14 @@ const absensi = {
     locationName: "Lokasi tidak terdeteksi",
 
     async init() {
-        console.log("Absensi Initializing...");
-        
-        // 1. JALUR CEPAT: Nyalakan jam dan hardware dulu (Tanpa await agar tidak menunggu)
+        console.log("Absensi: Memulai hardware & sinkronisasi...");
         this.updateClock();
+        
+        // JALUR CEPAT: Nyalakan hardware tanpa menunggu (Non-blocking)
         this.setupCamera(); 
         this.getReadableLocation();
 
-        // 2. JALUR DATA: Sinkronisasi tombol dengan server
+        // JALUR DATA: Sinkronisasi tombol dengan server
         await this.renderButtons();
     },
 
@@ -23,7 +23,7 @@ const absensi = {
         const video = document.getElementById('webcam-preview');
         if (!video) return;
 
-        // PROTEKSI: Jika kamera sudah aktif (dari proses login), jangan minta akses lagi
+        // Proteksi jika kamera sudah aktif
         if (this.stream && this.stream.active) {
             video.srcObject = this.stream;
             return;
@@ -36,50 +36,39 @@ const absensi = {
             video.srcObject = this.stream;
         } catch (err) {
             console.warn("Kamera tidak tersedia:", err);
-            const box = video.parentElement;
-            if(box) box.style.background = "#333";
+            if(video.parentElement) video.parentElement.style.background = "#333";
         }
     },
 
-    // ... (Fungsi getReadableLocation tetap sama seperti milik Anda) ...
     async getReadableLocation() {
         const locText = document.getElementById('location-text');
-        try {
-            const pos = await new Promise((res, rej) => {
-                navigator.geolocation.getCurrentPosition(res, rej, { 
-                    enableHighAccuracy: true, 
-                    timeout: 5000 
-                });
-            });
-            
-            // Simpan koordinat cadangan jika reverse geocode gagal
-            this.locationName = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`)
-                .then(r => r.json())
-                .then(data => {
-                    if(data.display_name) {
-                        this.locationName = data.display_name.split(',').slice(0, 3).join(',');
-                        if (locText) locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.locationName}`;
-                    }
-                }).catch(() => {
-                    if (locText) locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.locationName}`;
-                });
-        } catch (e) {
-            if (locText) locText.innerHTML = `<i class="fas fa-exclamation-triangle"></i> GPS tidak aktif`;
-        }
-    },
-
-    // ... (Fungsi renderButtons, submit, dan updateClock tetap gunakan milik Anda) ...
-    // HANYA PASTIKAN: Di dalam renderButtons(), pastikan ada pengecekan elemen
-    async renderButtons() {
-        const btnContainer = document.getElementById('attendance-btns');
-        const session = storage.get('session');
         
-        // JIKA sedang di halaman Admin, jangan jalankan sinkronisasi absen
-        if (!btnContainer || !session || session.role === 'admin') return;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                
+                // Simpan koordinat cadangan segera
+                this.locationName = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                if (locText) locText.innerHTML = `<i class="fas fa-crosshairs"></i> Lokasi Terkunci`;
 
-        btnContainer.innerHTML = '<div style="text-align:center; padding:15px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Data...</div>';
+                // Cari nama alamat di background
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.display_name) {
+                            this.locationName = data.display_name.split(',').slice(0, 3).join(',');
+                            if (locText) locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.locationName}`;
+                        }
+                    }).catch(() => {});
+            },
+            (err) => {
+                if (locText) locText.innerHTML = `<i class="fas fa-exclamation-triangle"></i> GPS tidak aktif`;
+                this.locationName = "Lokasi tidak terdeteksi";
+            },
+            { enableHighAccuracy: false, timeout: 4000 }
+        );
+    },
 
     async renderButtons() {
         const btnContainer = document.getElementById('attendance-btns');
@@ -102,59 +91,42 @@ const absensi = {
             const jamMulaiLembur = res.jamMulaiLembur || "17:00";
             const serverTime = res.serverTime || "00:00";
 
-            // Status Aktivitas (Case Insensitive & Trim)
             const hasMasuk = logs.some(l => String(l.tipe).toUpperCase().trim() === 'MASUK');
             const hasPulang = logs.some(l => String(l.tipe).toUpperCase().trim() === 'PULANG');
             const hasMulaiLembur = logs.some(l => String(l.tipe).toUpperCase().trim() === 'MULAI_LEMBUR');
-            const isLemburAktif = hasMulaiLembur && !logs.some(l => String(l.tipe).toUpperCase().trim() === 'SELESAI_LEMBUR');
             const hasSelesaiLembur = logs.some(l => String(l.tipe).toUpperCase().trim() === 'SELESAI_LEMBUR');
 
-            // Logika Perbandingan Waktu (Menit Total)
             const [hServer, mServer] = serverTime.split(':').map(Number);
             const [hLimit, mLimit] = jamMulaiLembur.split(':').map(Number);
-            
-            const totalMenitSekarang = (hServer * 60) + mServer;
-            const totalMenitLimit = (hLimit * 60) + mLimit;
-            const sudahWaktunyaLembur = totalMenitSekarang >= totalMenitLimit;
+            const sudahWaktunyaLembur = ((hServer * 60) + mServer) >= ((hLimit * 60) + mLimit);
 
             let html = '';
 
-            // --- ALUR TOMBOL PT. BISATANI ---
-            
             if (!hasMasuk) {
-                // Tahap 1: Belum Absen Masuk
                 html = `<button class="attendance-btn clock-in-btn" onclick="absensi.submit('MASUK')">MASUK KERJA</button>`;
             } 
             else if (hasMasuk && !hasPulang) {
-                // Tahap 2: Sudah Masuk, Muncul Tombol Pulang
                 html = `<button class="attendance-btn clock-out-btn" onclick="absensi.submit('PULANG')">PULANG KERJA</button>`;
             }
             else if (hasPulang && !hasMulaiLembur) {
-                // Tahap 3: Sudah Pulang, Cek Tombol Lembur
                 if (sudahWaktunyaLembur) {
                     html = `
-                        <div style="text-align:center; margin-bottom:12px; color:#b45309; font-weight:bold;">
-                            <i class="fas fa-clock"></i> Waktu Lembur Dimulai
-                        </div>
+                        <div style="text-align:center; margin-bottom:12px; color:#b45309; font-weight:bold;"><i class="fas fa-clock"></i> Waktu Lembur Dimulai</div>
                         <button class="attendance-btn" style="background:#f59e0b; color:white;" onclick="absensi.submit('MULAI_LEMBUR')">MULAI LEMBUR</button>
                     `;
                 } else {
                     html = `
                         <div style="text-align:center; padding:15px; border:1px solid #ddd; border-radius:12px; background:#f9fafb;">
-                            <p style="font-size:0.85rem; color:#6b7280; margin-bottom:10px;">
-                                <i class="fas fa-lock"></i> Tombol lembur aktif jam <b>${jamMulaiLembur}</b>
-                            </p>
+                            <p style="font-size:0.85rem; color:#6b7280; margin-bottom:10px;"><i class="fas fa-lock"></i> Tombol lembur aktif jam <b>${jamMulaiLembur}</b></p>
                             <button class="attendance-btn" style="background:#d1d5db; color:#9ca3af; cursor:not-allowed;" disabled>MULAI LEMBUR</button>
                         </div>
                     `;
                 }
             }
             else if (hasMulaiLembur && !hasSelesaiLembur) {
-                // Tahap 4: Sedang Lembur
                 html = `<button class="attendance-btn" style="background:#d97706; color:white" onclick="absensi.submit('SELESAI_LEMBUR')">SELESAI LEMBUR</button>`;
             }
             else {
-                // Tahap 5: Selesai Total
                 html = `
                     <div style="text-align:center; padding:25px; background:#f0fdf4; color:#166534; border-radius:15px; border:1px solid #bbf7d0;">
                         <i class="fas fa-check-circle" style="font-size:2.5rem; margin-bottom:12px;"></i>
@@ -175,8 +147,8 @@ const absensi = {
         const session = storage.get('session');
         const currentId = session.id || session.userId;
 
-        if (!currentId || currentId === "Unknown") {
-            alert("Sesi berakhir. Silakan LOGOUT dan LOGIN kembali.");
+        if (!currentId) {
+            alert("Sesi berakhir. Silakan LOGIN kembali.");
             return;
         }
 
@@ -207,20 +179,20 @@ const absensi = {
 
             if (response.success) {
                 alert(`Absen ${tipe} Berhasil!`);
-                // Delay sebentar agar data di Sheets stabil sebelum refresh tombol
-                setTimeout(() => this.renderButtons(), 1500);
+                setTimeout(() => this.renderButtons(), 1000);
             } else {
                 alert("Gagal: " + response.error);
                 this.renderButtons();
             }
         } catch (error) {
-            alert("Koneksi bermasalah. Pastikan internet stabil.");
+            alert("Koneksi bermasalah.");
             this.renderButtons();
         }
     },
 
     updateClock() {
-        setInterval(() => {
+        if (this.clockInterval) clearInterval(this.clockInterval);
+        this.clockInterval = setInterval(() => {
             const el = document.getElementById('live-clock');
             if (el) el.textContent = new Date().toLocaleTimeString('id-ID', { hour12: false });
         }, 1000);
