@@ -147,21 +147,21 @@
                     <div class="absensi-container">
                         <div class="absensi-header">
                             <div class="live-clock" id="live-clock">00:00:00</div>
-                            <p>Silakan pilih aksi kehadiran Anda hari ini</p>
+                            
+                            <div class="camera-box" style="margin: 20px auto; width: 300px; height: 225px; background: #000; border-radius: 15px; overflow: hidden; border: 4px solid #10b981; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative;">
+                                <video id="webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                                <div style="position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px;">LIVE PREVIEW</div>
+                            </div>
+                            
+                            <p id="location-text" style="font-size: 0.9rem; color: #10b981; font-weight: 500; margin-bottom: 15px;">
+                                <i class="fas fa-map-marker-alt"></i> Mencari lokasi...
+                            </p>
                         </div>
-                        <div class="attendance-buttons">
-                            <button class="attendance-btn clock-in-btn" id="btn-clock-in">
-                                <i class="fas fa-sign-in-alt"></i><span>Masuk Kerja</span>
-                            </button>
-                            <button class="attendance-btn overtime-btn" id="btn-start-overtime" style="background:#f59e0b">
-                                <i class="fas fa-play"></i><span>Mulai Lembur</span>
-                            </button>
-                            <button class="attendance-btn overtime-btn" id="btn-end-overtime" style="background:#d97706" disabled>
-                                <i class="fas fa-stop"></i><span>Selesai Lembur</span>
-                            </button>
-                            <button class="attendance-btn clock-out-btn" id="btn-clock-out" disabled>
-                                <i class="fas fa-sign-out-alt"></i><span>Pulang Kerja</span>
-                            </button>
+
+                        <div class="attendance-buttons" id="attendance-btns">
+                            <div style="text-align: center; color: #999; padding: 20px;">
+                                <i class="fas fa-circle-notch fa-spin"></i> Menyiapkan tombol...
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -198,34 +198,34 @@
                 </div>
 
                 <div class="page" id="page-settings">
-    <div class="settings-grid">
-        <div class="settings-card">
-            <h3><i class="fas fa-clock"></i> Konfigurasi Waktu Kerja</h3>
-            <div class="form-group">
-                <label>Jam Masuk Standar</label>
-                <input type="time" id="set-jam-masuk" value="08:00">
-            </div>
-            <div class="form-group">
-                <label>Jam Pulang Standar</label>
-                <input type="time" id="set-jam-pulang" value="17:00">
-            </div>
-            <button class="btn-primary" onclick="settings.saveWorkTime()"><i class="fas fa-save"></i> Simpan Jam Kerja</button>
-        </div>
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h3><i class="fas fa-clock"></i> Konfigurasi Waktu Kerja</h3>
+                            <div class="form-group">
+                                <label>Jam Masuk Standar</label>
+                                <input type="time" id="set-jam-masuk" value="08:00">
+                            </div>
+                            <div class="form-group">
+                                <label>Jam Pulang Standar</label>
+                                <input type="time" id="set-jam-pulang" value="17:00">
+                            </div>
+                            <button class="btn-primary" onclick="settings.saveWorkTime()"><i class="fas fa-save"></i> Simpan Jam Kerja</button>
+                        </div>
 
-        <div class="settings-card">
-            <h3><i class="fas fa-money-bill-wave"></i> Parameter Gaji & Denda</h3>
-            <div class="form-group">
-                <label>Bonus Lembur / Jam (Rp)</label>
-                <input type="number" id="set-overtime-rate" value="15000">
-            </div>
-            <div class="form-group">
-                <label>Denda Telat / Menit (Rp)</label>
-                <input type="number" id="set-late-rate" value="1000">
-            </div>
-            <button class="btn-primary" onclick="settings.savePayroll()"><i class="fas fa-save"></i> Simpan Tarif</button>
-        </div>
-    </div>
-</div>
+                        <div class="settings-card">
+                            <h3><i class="fas fa-money-bill-wave"></i> Parameter Gaji & Denda</h3>
+                            <div class="form-group">
+                                <label>Bonus Lembur / Jam (Rp)</label>
+                                <input type="number" id="set-overtime-rate" value="15000">
+                            </div>
+                            <div class="form-group">
+                                <label>Denda Telat / Menit (Rp)</label>
+                                <input type="number" id="set-late-rate" value="1000">
+                            </div>
+                            <button class="btn-primary" onclick="settings.savePayroll()"><i class="fas fa-save"></i> Simpan Tarif</button>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="page" id="page-employees">
                     <div class="employees-container">
