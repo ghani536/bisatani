@@ -20,7 +20,6 @@ const router = {
         // 2. Menangani klik pada navigasi bawah (Mobile)
         document.querySelectorAll('.bottom-nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                // Jangan cegah default jika itu tombol logout
                 if (item.getAttribute('onclick')) return;
                 
                 e.preventDefault();
@@ -29,14 +28,12 @@ const router = {
             });
         });
         
-        // 3. Menangani tombol back/forward browser
         window.addEventListener('popstate', (e) => {
             if (e.state && e.state.page) {
                 this.showPage(e.state.page, false);
             }
         });
         
-        // 4. Cek halaman terakhir atau default
         const storedPage = storage.get('currentPage');
         if (storedPage && this.routes.includes(storedPage)) {
             this.showPage(storedPage, false);
@@ -66,7 +63,7 @@ const router = {
         
         document.title = `${titles[page]} - PT. BISATANI`;
         
-        // Update status aktif di Sidebar & Bottom Nav
+        // Update status aktif di UI
         document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(item => {
             item.classList.remove('active');
             if (item.dataset.page === page) item.classList.add('active');
@@ -84,7 +81,7 @@ const router = {
             history.pushState({ page }, titles[page], `#${page}`);
         }
         
-        // Jalankan fungsi khusus per halaman
+        // JALANKAN INISIALISASI DATA
         this.triggerPageInit(page);
         
         const contentArea = document.querySelector('.page-content');
@@ -92,21 +89,28 @@ const router = {
     },
     
     triggerPageInit(page) {
-        console.log("Inisialisasi halaman:", page);
+        console.log("Memuat data untuk halaman:", page);
         switch(page) {
             case 'dashboard':
                 if (window.initDashboard) window.initDashboard();
                 break;
             case 'absensi':
-                // Pastikan fungsi absen dibangunkan setiap kali halaman dibuka
                 if (window.initAbsensi) window.initAbsensi();
                 break;
             case 'employees':
-                // REVISI: Tambahkan inisialisasi Data Karyawan
                 if (window.initEmployees) window.initEmployees();
                 break;
+            case 'attendance-reports':
+                // --- UPDATE UNTUK PT. BISATANI ---
+                // Memanggil fungsi init di admin-reports.js
+                if (window.initAttendanceReports) {
+                    window.initAttendanceReports();
+                } else if (window.adminReports && window.adminReports.init) {
+                    window.adminReports.init();
+                }
+                break;
             case 'payroll-reports':
-                // Inisialisasi payroll jika ada fungsi rekap
+                if (window.payroll && window.payroll.init) window.payroll.init();
                 break;
             case 'settings':
                 if (window.settings && window.settings.init) window.settings.init();
