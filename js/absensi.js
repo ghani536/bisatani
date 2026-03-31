@@ -55,30 +55,29 @@ const absensi = {
         const session = storage.get('session');
         if (!btnContainer || !session) return;
 
-        btnContainer.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Mengecek status...</div>';
+        btnContainer.innerHTML = '<div style="text-align:center"><i class="fas fa-sync fa-spin"></i> Cek Status...</div>';
 
         try {
-            // Ambil data log hari ini DAN jam pulang dari settings
+            const currentId = session.id || session.userId;
             const res = await api.post({ 
-                action: 'getAttendanceStatus', // Kita gunakan fungsi baru yang lebih lengkap
-                userId: String(session.id)
+                action: 'getAttendanceStatus', 
+                userId: String(currentId)
             });
             
             const logs = res.logs || [];
-            const jamPulangSetting = res.jamPulang || "17:00"; // Default jam 5 sore
+            const jamSetting = res.jamMulaiLembur || "17:00";
 
-            const hasMasuk = logs.some(l => String(l.tipe).toUpperCase() === 'MASUK');
-            const hasPulang = logs.some(l => String(l.tipe).toUpperCase() === 'PULANG');
-            const isLembur = logs.some(l => String(l.tipe).toUpperCase() === 'MULAI_LEMBUR') && 
-                             !logs.some(l => String(l.tipe).toUpperCase() === 'SELESAI_LEMBUR');
-
-            // Cek apakah sekarang sudah melewati jam pulang
+            // Cek Waktu Sekarang vs Waktu di Setting
             const sekarang = new Date();
-            const [jamP, menitP] = jamPulangSetting.split(':').map(Number);
-            const waktuPulang = new Date();
-            waktuPulang.setHours(jamP, menitP, 0);
+            const [jamSet, menitSet] = jamSetting.split(':').map(Number);
+            const waktuBatasLembur = new Date();
+            waktuBatasLembur.setHours(jamSet, menitSet, 0);
 
-            const sudahWaktunyaLembur = sekarang >= waktuPulang;
+            const sudahBolehLembur = sekarang >= waktuBatasLembur;
+
+            const hasMasuk = logs.some(l => l.tipe === 'MASUK');
+            const hasPulang = logs.some(l => l.tipe === 'PULANG');
+            const isLembur = logs.some(l => l.tipe === 'MULAI_LEMBUR') && !logs.some(l => l.tipe === 'SELESAI_LEMBUR');
 
             let html = '';
             
@@ -89,28 +88,28 @@ const absensi = {
                 html = `<button class="attendance-btn" style="background:#d97706; color:white" onclick="absensi.submit('SELESAI_LEMBUR')">SELESAI LEMBUR</button>`;
             }
             else if (hasMasuk && !hasPulang) {
+                // Tombol Pulang Utama
                 html = `<button class="attendance-btn clock-out-btn" onclick="absensi.submit('PULANG')">PULANG KERJA</button>`;
                 
-                // TOMBOL LEMBUR HANYA MUNCUL JIKA SUDAH JAM 17.00 (atau sesuai setting)
-                if (sudahWaktunyaLembur) {
+                // Jika sudah melewati jam setting, munculkan tombol lembur
+                if (sudahBolehLembur) {
                     html += `
-                        <div style="border-top: 1px solid #eee; margin: 15px 0; padding-top: 10px;">
-                            <p style="font-size: 0.8rem; color: #f59e0b; font-weight:bold;">Sudah masuk waktu lembur</p>
+                        <div style="margin-top:20px; padding:10px; border:1px dashed #f59e0b; border-radius:10px;">
+                            <p style="font-size:0.75rem; color:#b45309; margin-bottom:8px;">* Sudah masuk waktu lembur</p>
                             <button class="attendance-btn" style="background:#f59e0b; color:white;" onclick="absensi.submit('MULAI_LEMBUR')">MULAI LEMBUR</button>
                         </div>
                     `;
                 }
             } 
             else {
-                html = `<div style="text-align:center; padding:15px; background:#f0fdf4; color:#166534; border-radius:10px;">Tugas Selesai</div>`;
+                html = `<div class="status-success">Absensi Selesai</div>`;
             }
             
             btnContainer.innerHTML = html;
         } catch (e) {
-            btnContainer.innerHTML = `<button class="attendance-btn" onclick="absensi.renderButtons()">Coba Lagi</button>`;
+            btnContainer.innerHTML = `<button onclick="absensi.renderButtons()">Muat Ulang</button>`;
         }
-    },,
-
+    },
     async submit(tipe) {
         const session = storage.get('session');
         const currentId = session.id || session.userId;
