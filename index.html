@@ -1,97 +1,133 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
     <title>Portal Karyawan | PT. Bisatani</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/absensi.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/mobile.css">
     <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/face-rec.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Proteksi agar tidak berantakan */
         .hidden { display: none !important; }
-        .page { display: none; }
-        .page.active { display: block; }
+        .modal { display: none !important; }
+        .modal[style*="display: flex"] { display: flex !important; }
+        
+        /* Merapikan Filter Section */
+        .filter-row { 
+            display: flex; 
+            gap: 15px; 
+            flex-wrap: wrap; 
+            background: #f8fafc; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 15px; 
+            align-items: flex-end; 
+            border: 1px solid #e2e8f0;
+        }
+        .filter-item { display: flex; flex-direction: column; gap: 5px; }
+        .filter-item label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .filter-item input, .filter-item select { 
+            padding: 8px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            min-width: 140px; 
+            background: white;
+        }
     </style>
 </head>
-<body>
-    <div id="toast-container"></div>
 
-    <div id="login-container">
-        <div class="login-form-container">
-            <h2>PT. BISATANI</h2>
-            <form id="login-form" onsubmit="return false;">
-                <input type="text" id="login-email" placeholder="ID / Email" required>
-                <input type="password" id="login-password" placeholder="Password" required>
-                <div class="role-selector">
-                    <input type="radio" name="role" value="employee" id="role-emp" checked> <label for="role-emp">Karyawan</label>
-                    <input type="radio" name="role" value="admin" id="role-adm"> <label for="role-adm">Admin</label>
+<body>
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="login-container" class="login-container">
+        <div class="login-left">
+            <div class="login-animation">
+                <div class="central-logo"><div class="logo-core"><i class="fas fa-leaf"></i></div></div>
+                <h1 class="company-name">PT. BISATANI</h1>
+                <p class="tagline">Sistem Absensi & Payroll Terintegrasi</p>
+            </div>
+        </div>
+        <div class="login-right">
+            <div class="login-form-container">
+                <div class="login-header">
+                    <h2>Selamat Datang</h2>
+                    <p>Silakan login untuk mulai bekerja</p>
                 </div>
-                <button type="submit" class="btn-login">Login</button>
-            </form>
+                <form id="login-form" class="login-form" onsubmit="return false;">
+                    <div class="input-group">
+                        <label for="login-email">ID Karyawan / Email</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="login-email" placeholder="Masukkan ID atau Email" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="login-password" placeholder="Masukkan password" required>
+                            <button type="button" class="toggle-password" id="toggle-password"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="role-selector">
+                        <div class="role-options">
+                            <label class="role-option">
+                                <input type="radio" name="role" value="employee" checked>
+                                <span class="role-card"><i class="fas fa-user"></i><span>Karyawan</span></span>
+                            </label>
+                            <label class="role-option">
+                                <input type="radio" name="role" value="admin">
+                                <span class="role-card"><i class="fas fa-user-shield"></i><span>Admin</span></span>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-login"><span>Login</span><i class="fas fa-arrow-right"></i></button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div id="app-container" class="hidden">
-        <aside class="sidebar">
-            <div id="employee-menu" class="menu-box">
-                <button data-page="dashboard">Dashboard</button>
-                <button data-page="absensi">Absensi</button>
+    <div id="app-container" class="app-container hidden">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo"><i class="fas fa-seedling"></i><span class="sidebar-brand">BISATANI</span></div>
             </div>
-            <div id="admin-menu-nav" class="menu-box hidden">
-                <button data-page="admin-dashboard">Admin Dash</button>
-                <button data-page="attendance-reports">Rekap Absen</button>
-                <button data-page="employees">Data Karyawan</button>
-            </div>
-            <div class="user-info">
-                <span id="user-name">User</span>
-                <span id="user-role">Role</span>
-                <button id="btn-logout">Logout</button>
-            </div>
-        </aside>
-
-        <main>
-            <h1 id="page-title">Dashboard</h1>
-            <div id="page-content">
-                <div class="page active" id="page-dashboard">Selamat datang <span id="welcome-name"></span></div>
-                
-                <div class="page" id="page-absensi">
-                    <div id="live-clock">00:00:00</div>
-                    <video id="webcam-preview" autoplay playsinline style="width:200px;"></video>
-                    <p id="location-text">Mencari GPS...</p>
-                    <div id="attendance-btns"></div>
+            
+            <nav class="sidebar-nav employee-menu" id="employee-menu">
+                <div class="nav-section">
+                    <span class="nav-label">Menu Utama</span>
+                    <ul class="nav-list">
+                        <li class="nav-item active" data-page="dashboard"><a href="#" class="nav-link"><i class="fas fa-home"></i><span>Dashboard</span></a></li>
+                        <li class="nav-item" data-page="absensi"><a href="#" class="nav-link"><i class="fas fa-clock"></i><span>Absensi & Lembur</span></a></li>
+                    </ul>
                 </div>
+            </nav>
 
-                <div class="page" id="page-attendance-reports">
-                    <div class="filter-row">
-                        <input type="date" id="report-start-date">
-                        <input type="date" id="report-end-date">
-                        <select id="report-type-filter">
-                            <option value="">Semua Tipe</option>
-                            <option value="MASUK">MASUK</option>
-                            <option value="PULANG">PULANG</option>
-                            <option value="MULAI_LEMBUR">MULAI LEMBUR</option>
-                            <option value="SELESAI_LEMBUR">SELESAI LEMBUR</option>
-                        </select>
-                        <select id="report-employee-filter"><option value="">Semua</option></select>
-                    </div>
-                    <div id="overtime-summary-card" style="display:none">Total: <span id="total-overtime-hours">0</span></div>
-                    <table>
-                        <thead><tr><th>No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Ket</th><th>Mulai</th><th>Selesai</th><th>Total</th></tr></thead>
-                        <tbody id="attendance-reports-body"></tbody>
-                    </table>
+            <nav class="sidebar-nav admin-menu hidden" id="admin-menu-nav">
+                <div class="nav-section">
+                    <span class="nav-label">Panel Admin</span>
+                    <ul class="nav-list">
+                        <li class="nav-item" data-page="admin-dashboard"><a href="#" class="nav-link"><i class="fas fa-chart-line"></i><span>Dashboard Admin</span></a></li>
+                        <li class="nav-item" data-page="employees"><a href="#" class="nav-link"><i class="fas fa-users"></i><span>Data Karyawan</span></a></li>
+                    </ul>
                 </div>
-            </div>
-        </main>
-    </div>
-
-    <script src="js/api.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/router.js"></script>
-    <script src="js/absensi.js"></script>
-    <script src="js/admin-reports.js"></script>
-</body>
-</html>
+                <div class="nav-section">
+                    <span class="nav-label">Laporan & Gaji</span>
+                    <ul class="nav-list">
+                        <li class="nav-item" data-page="attendance-reports"><a href="#" class="nav-link"><i class="fas fa-file-invoice"></i><span>Rekap Absensi</span></a></li>
+                        <li class="nav-item" data-page="payroll-reports"><a href="#" class="nav-link"><i class="
