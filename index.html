@@ -198,25 +198,34 @@
                 </div>
 
                 <div class="page" id="page-settings">
-                    <div class="settings-grid">
-                        <div class="settings-card">
-                            <h3>Parameter Gaji PT. Bisatani</h3>
-                            <div class="form-group">
-                                <label>Bonus Lembur / Jam (Rp)</label>
-                                <input type="number" id="set-overtime-rate" value="15000">
-                            </div>
-                            <div class="form-group">
-                                <label>Denda Telat / Menit (Rp)</label>
-                                <input type="number" id="set-late-rate" value="1000">
-                            </div>
-                            <div class="form-group">
-                                <label>Potongan BPJS (Rp)</label>
-                                <input type="number" id="set-bpjs-rate" value="150000">
-                            </div>
-                            <button class="btn-primary" onclick="settings.savePayroll()"><i class="fas fa-save"></i> Simpan Tarif</button>
-                        </div>
-                    </div>
-                </div>
+    <div class="settings-grid">
+        <div class="settings-card">
+            <h3><i class="fas fa-clock"></i> Konfigurasi Waktu Kerja</h3>
+            <div class="form-group">
+                <label>Jam Masuk Standar</label>
+                <input type="time" id="set-jam-masuk" value="08:00">
+            </div>
+            <div class="form-group">
+                <label>Jam Pulang Standar</label>
+                <input type="time" id="set-jam-pulang" value="17:00">
+            </div>
+            <button class="btn-primary" onclick="settings.saveWorkTime()"><i class="fas fa-save"></i> Simpan Jam Kerja</button>
+        </div>
+
+        <div class="settings-card">
+            <h3><i class="fas fa-money-bill-wave"></i> Parameter Gaji & Denda</h3>
+            <div class="form-group">
+                <label>Bonus Lembur / Jam (Rp)</label>
+                <input type="number" id="set-overtime-rate" value="15000">
+            </div>
+            <div class="form-group">
+                <label>Denda Telat / Menit (Rp)</label>
+                <input type="number" id="set-late-rate" value="1000">
+            </div>
+            <button class="btn-primary" onclick="settings.savePayroll()"><i class="fas fa-save"></i> Simpan Tarif</button>
+        </div>
+    </div>
+</div>
 
                 <div class="page" id="page-employees">
                     <div class="employees-container">
