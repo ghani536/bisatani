@@ -1,3 +1,6 @@
+/**
+ * Portal Karyawan - Auth PT. BISATANI
+ */
 const auth = {
     user: null,
 
@@ -17,6 +20,12 @@ const auth = {
                 await this.handleLogin();
             };
         }
+
+        // Handle Logout Button
+        const logoutBtn = document.getElementById('btn-logout');
+        if (logoutBtn) {
+            logoutBtn.onclick = () => this.handleLogout();
+        }
     },
 
     async handleLogin() {
@@ -33,8 +42,6 @@ const auth = {
         const password = passwordEl.value;
         const role = roleEl.value;
 
-        console.log("Auth: Mencoba login untuk:", email);
-
         const btn = document.querySelector('.btn-login');
         if (btn) {
             btn.disabled = true;
@@ -42,11 +49,11 @@ const auth = {
         }
 
         try {
-            // DI SINI BIASANYA MACET KALAU api.js ERROR
             const res = await api.login(email, password);
             console.log("Auth: Respon dari server:", res);
 
             if (res.success && res.data) {
+                // Simpan data user dan tambahkan role
                 this.user = { ...res.data, role: res.data.role || role };
                 storage.set('session', this.user);
                 this.showApp();
@@ -82,15 +89,37 @@ const auth = {
 
         if (this.user) {
             const nameEl = document.getElementById('user-name');
-            if (nameEl) nameEl.textContent = this.user.name;
+            const welcomeEl = document.getElementById('welcome-name');
+            const roleEl = document.getElementById('user-role');
             
+            if (nameEl) nameEl.textContent = this.user.name;
+            if (welcomeEl) welcomeEl.textContent = this.user.name.split(' ')[0];
+            if (roleEl) roleEl.textContent = this.user.role === 'admin' ? 'Administrator' : 'Karyawan';
+            
+            // Navigasi Router
             if (window.router) {
                 const target = (this.user.role === 'admin') ? 'admin-dashboard' : 'dashboard';
                 router.navigate(target);
             }
         }
+    },
+
+    // --- FUNGSI KRUSIAL UNTUK ROUTER ---
+    isLoggedIn() {
+        return this.user !== null;
+    },
+
+    handleLogout() {
+        if (confirm("Apakah Anda yakin ingin keluar?")) {
+            storage.clear();
+            this.user = null;
+            window.location.reload();
+        }
     }
 };
 
+// Pastikan inisialisasi berjalan
 document.addEventListener('DOMContentLoaded', () => auth.init());
+
+// Ekspos ke global agar bisa dibaca router.js
 window.auth = auth;
