@@ -1,39 +1,47 @@
+/**
+ * Portal Karyawan - Router PT. BISATANI
+ */
 const router = {
-    routes: ['dashboard', 'absensi', 'admin-dashboard', 'employees', 'attendance-reports', 'payroll-reports', 'settings'],
+    currentPage: 'dashboard',
+    
     init() {
         document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
+                if (item.getAttribute('onclick')) return;
                 e.preventDefault();
                 const page = item.dataset.page;
                 if (page) this.navigate(page);
             });
         });
     },
+
     navigate(page) {
-        if (!this.routes.includes(page)) return;
-        
-        // Sembunyikan semua halaman
+        // Hanya pindah jika sudah login
+        if (!auth.isLoggedIn()) return;
+
+        // Update Menu Aktif
+        document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.dataset.page === page) item.classList.add('active');
+        });
+
+        // Tampilkan Halaman
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        
-        // Tampilkan halaman tujuan
         const target = document.getElementById(`page-${page}`);
         if (target) target.classList.add('active');
-        
-        // Update Title
+
+        // Update Judul
         const titleEl = document.getElementById('page-title');
         if (titleEl) titleEl.textContent = page.replace('-', ' ').toUpperCase();
 
-        // Jalankan Init Halaman (Proteksi Error)
+        // Init Data Halaman
         try {
-            this.triggerPageInit(page);
-        } catch (e) { console.error("Gagal init halaman:", page); }
-    },
-    triggerPageInit(page) {
-        if (page === 'attendance-reports' && window.adminReports) {
-            adminReports.init();
-        }
-        // Tambahkan init lain di sini jika perlu
+            if (page === 'attendance-reports' && window.adminReports) {
+                adminReports.init();
+            }
+        } catch (e) { console.error("Halaman Error:", e); }
     }
 };
+
 document.addEventListener('DOMContentLoaded', () => router.init());
 window.router = router;
