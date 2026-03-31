@@ -263,5 +263,63 @@
     <script src="js/settings.js"></script>
     <script src="js/admin-employees.js"></script>
     <script src="js/admin-reports.js"></script>
+    <div id="modal-employee" class="modal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+    <div class="modal-content" style="background: #fff; padding: 25px; border-radius: 15px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <h3 id="modal-title" style="margin: 0;">Data Karyawan</h3>
+            <button type="button" onclick="document.getElementById('modal-employee').style.display='none'" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+        
+        <form id="form-employee">
+            <input type="hidden" id="emp-id">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group" style="grid-column: span 2; margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Nama Lengkap</label>
+                    <input type="text" id="emp-name" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                </div>
+                
+                <div class="form-group" style="grid-column: span 2; margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Email</label>
+                    <input type="email" id="emp-email" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Departemen</label>
+                    <input type="text" id="emp-dept" placeholder="Contoh: Operasional" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Jabatan</label>
+                    <input type="text" id="emp-position" placeholder="Contoh: Staff" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Role Sistem</label>
+                    <select id="emp-role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                        <option value="employee">Karyawan</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Gaji Pokok</label>
+                    <input type="number" id="emp-gaji" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Potongan BPJS</label>
+                    <input type="number" id="emp-bpjs" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                </div>
+            </div>
+
+            <div class="modal-footer" style="margin-top: 20px;">
+                <button type="submit" class="btn-primary" style="width: 100%; background: #10b981; color: #fff; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-save"></i> Simpan Data Karyawan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>
