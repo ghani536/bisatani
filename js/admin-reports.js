@@ -3,32 +3,47 @@ const adminReports = {
     filters: { employee: '', startDate: '', endDate: '', type: '' },
 
    async init() {
-        console.log("AdminReports: Mengatur periode cut-off...");
+        console.log("AdminReports: Mengatur periode cut-off 26-25...");
         
         const now = new Date();
-        const currentDay = now.getDate();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // Maret adalah 2
+        const currentDate = now.getDate();
+
         let start, end;
 
-        // LOGIKA CUT-OFF 26 - 25
-        if (currentDay >= 26) {
-            // Jika tgl 26 ke atas, periode adalah 26 bulan ini s/d 25 bulan depan
-            start = new Date(now.getFullYear(), now.getMonth(), 26);
-            end = new Date(now.getFullYear(), now.getMonth() + 1, 25);
+        // LOGIKA CUT-OFF TEGAS
+        if (currentDate >= 26) {
+            // Periode: 26 Bulan Ini s/d 25 Bulan Depan
+            // Jam 12:00 untuk menghindari pergeseran zona waktu ke hari sebelumnya
+            start = new Date(currentYear, currentMonth, 26, 12, 0, 0);
+            end = new Date(currentYear, currentMonth + 1, 25, 12, 0, 0);
         } else {
-            // Jika di bawah tgl 26, periode adalah 26 bulan lalu s/d 25 bulan ini
-            start = new Date(now.getFullYear(), now.getMonth() - 1, 26);
-            end = new Date(now.getFullYear(), now.getMonth(), 25);
+            // Periode: 26 Bulan Lalu s/d 25 Bulan Ini
+            start = new Date(currentYear, currentMonth - 1, 26, 12, 0, 0);
+            end = new Date(currentYear, currentMonth, 25, 12, 0, 0);
         }
         
         const startIn = document.getElementById('report-start-date');
         const endIn = document.getElementById('report-end-date');
         const typeIn = document.getElementById('report-type-filter');
         
-        // Isi otomatis ke input HTML (format YYYY-MM-DD)
-        if (startIn) startIn.value = start.toISOString().split('T')[0];
-        if (endIn) endIn.value = end.toISOString().split('T')[0];
+        // Konversi ke format YYYY-MM-DD yang dipahami <input type="date">
+        const formatDate = (date) => {
+            const d = new Date(date);
+            let month = '' + (d.getMonth() + 1);
+            let day = '' + d.getDate();
+            const year = d.getFullYear();
 
-        // Update variabel filter internal
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        };
+
+        if (startIn) startIn.value = formatDate(start);
+        if (endIn) endIn.value = formatDate(end);
+
         this.filters.startDate = startIn ? startIn.value : '';
         this.filters.endDate = endIn ? endIn.value : '';
         this.filters.type = typeIn ? typeIn.value : '';
