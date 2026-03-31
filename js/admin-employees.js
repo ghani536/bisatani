@@ -5,28 +5,29 @@
 
 const adminEmployees = {
     employees: [],
-    currentPage: 1,
-    perPage: 10,
-    filters: {
-        search: '',
-        status: ''
-    },
 
     async init() {
-        // Cek akses admin
-        const role = localStorage.getItem('userRole');
-        if (role !== 'admin') {
-            toast.error('Anda tidak memiliki akses!');
-            router.navigate('dashboard');
+        // 1. SECURITY CHECK: Jangan jalankan jika elemen tabel tidak ada di halaman ini
+        const tbody = document.getElementById('employees-table-body');
+        if (!tbody) return; 
+
+        // 2. Akses Check
+        const session = storage.get('session');
+        if (!session || session.role !== 'admin') {
+            console.warn('Akses ditolak: Bukan admin');
             return;
         }
 
+        console.log("Admin Employees Initializing...");
         await this.loadEmployees();
         this.bindEvents();
         this.renderTable();
     },
 
     async loadEmployees() {
+        const tbody = document.getElementById('employees-table-body');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Memuat data...</td></tr>';
+
         try {
             const result = await api.post({ action: 'getEmployees' });
             this.employees = result.data || [];
@@ -37,12 +38,14 @@ const adminEmployees = {
     },
 
     bindEvents() {
-        // Tombol Tambah Karyawan (Membuka Modal)
+        // Tombol Tambah Karyawan
         const addBtn = document.getElementById('btn-add-employee');
         if (addBtn) {
-            addBtn.onclick = () => {
+            addBtn.onclick = (e) => {
+                e.preventDefault();
                 document.getElementById('modal-title').textContent = "Tambah Karyawan Baru";
                 document.getElementById('form-employee').reset();
+                document.getElementById('emp-id').value = ""; // Pastikan ID kosong
                 document.getElementById('modal-employee').style.display = 'flex';
             };
         }
@@ -67,7 +70,7 @@ const adminEmployees = {
             <tr>
                 <td>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <img src="${emp.avatar}" style="width:35px; border-radius:50%">
+                        <img src="${emp.avatar || 'https://ui-avatars.com/api/?name=' + emp.name}" style="width:35px; border-radius:50%">
                         <div>
                             <div style="font-weight:600">${emp.name}</div>
                             <small style="color:gray">${emp.email}</small>
@@ -75,14 +78,14 @@ const adminEmployees = {
                     </div>
                 </td>
                 <td><small>ID-${emp.id}</small></td>
-                <td>${emp.position}</td>
-                <td>Rp ${Number(emp.gaji_pokok || 0).toLocaleString()}</td>
-                <td>Rp ${Number(emp.bpjs || 0).toLocaleString()}</td>
+                <td>${emp.position || '-'}</td>
+                <td>Rp ${Number(emp.gaji_pokok || 0).toLocaleString('id-ID')}</td>
+                <td>Rp ${Number(emp.bpjs || 0).toLocaleString('id-ID')}</td>
                 <td>
-                    <button class="btn-action edit" onclick="adminEmployees.prepareEdit(${emp.id})" title="Edit">
+                    <button class="btn-action edit" onclick="adminEmployees.prepareEdit('${emp.id}')" style="color: #3b82f6; border:none; background:none; cursor:pointer; padding:5px;">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-action delete" onclick="adminEmployees.deleteEmployee(${emp.id})" title="Hapus">
+                    <button class="btn-action delete" onclick="adminEmployees.deleteEmployee('${emp.id}')" style="color: #ef4444; border:none; background:none; cursor:pointer; padding:5px; margin-left:10px;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -105,6 +108,8 @@ const adminEmployees = {
             bpjs: document.getElementById('emp-bpjs').value
         };
 
+        toast.info("Sedang memproses...");
+
         try {
             const res = await api.post(data);
             if (res.success) {
@@ -121,23 +126,23 @@ const adminEmployees = {
     },
 
     prepareEdit(id) {
-        const emp = this.employees.find(e => e.id == id);
+        const emp = this.employees.find(e => String(e.id) === String(id));
         if (!emp) return;
 
         document.getElementById('modal-title').textContent = "Edit Data Karyawan";
         document.getElementById('emp-id').value = emp.id;
         document.getElementById('emp-name').value = emp.name;
         document.getElementById('emp-email').value = emp.email;
-        document.getElementById('emp-position').value = emp.position;
+        document.getElementById('emp-position').value = emp.position || '';
         document.getElementById('emp-role').value = emp.role || 'employee';
-        document.getElementById('emp-gaji').value = emp.gaji_pokok;
-        document.getElementById('emp-bpjs').value = emp.bpjs;
+        document.getElementById('emp-gaji').value = emp.gaji_pokok || 0;
+        document.getElementById('emp-bpjs').value = emp.bpjs || 0;
 
         document.getElementById('modal-employee').style.display = 'flex';
     },
 
     async deleteEmployee(id) {
-        if (!confirm('Hapus karyawan ini? Semua data absen & gaji juga akan hilang.')) return;
+        if (!confirm('Hapus karyawan ini? Data login dan profil akan dihapus.')) return;
 
         try {
             const res = await api.post({ action: 'deleteEmployee', id: id });
