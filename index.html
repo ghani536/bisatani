@@ -21,20 +21,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Proteksi Modal agar tidak muncul saat loading */
         .modal { display: none !important; }
         .modal[style*="display: flex"] { display: flex !important; }
         .modal[style*="display: block"] { display: block !important; }
-        
-        /* Layout fix untuk tabel rekap */
         .reports-table-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; margin-top: 15px; }
         .reports-table th { white-space: nowrap; font-size: 0.75rem; }
-        
-        /* Style Filter Baru */
         .filter-row { display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 15px; align-items: flex-end; }
         .filter-item { display: flex; flex-direction: column; gap: 5px; }
         .filter-item label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        .filter-item input, .filter-item select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 13px; }
+        .filter-item input, .filter-item select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
     </style>
 </head>
 
@@ -44,9 +39,7 @@
     <div id="login-container" class="login-container">
         <div class="login-left">
             <div class="login-animation">
-                <div class="central-logo">
-                    <div class="logo-core"><i class="fas fa-leaf"></i></div>
-                </div>
+                <div class="central-logo"><div class="logo-core"><i class="fas fa-leaf"></i></div></div>
                 <h1 class="company-name">PT. BISATANI</h1>
                 <p class="tagline">Sistem Absensi & Payroll Terintegrasi</p>
             </div>
@@ -59,14 +52,14 @@
                 </div>
                 <form id="login-form" class="login-form">
                     <div class="input-group">
-                        <label for="login-email">ID Karyawan / Email</label>
+                        <label>ID Karyawan / Email</label>
                         <div class="input-wrapper">
                             <i class="fas fa-user"></i>
                             <input type="text" id="login-email" placeholder="Masukkan ID atau Email" required>
                         </div>
                     </div>
                     <div class="input-group">
-                        <label for="login-password">Password</label>
+                        <label>Password</label>
                         <div class="input-wrapper">
                             <i class="fas fa-lock"></i>
                             <input type="password" id="login-password" placeholder="Masukkan password" required>
@@ -96,7 +89,6 @@
             <div class="sidebar-header">
                 <div class="sidebar-logo"><i class="fas fa-seedling"></i><span class="sidebar-brand">BISATANI</span></div>
             </div>
-
             <nav class="sidebar-nav employee-menu" id="employee-menu">
                 <div class="nav-section">
                     <span class="nav-label">Menu Utama</span>
@@ -106,7 +98,6 @@
                     </ul>
                 </div>
             </nav>
-
             <nav class="sidebar-nav admin-menu hidden" id="admin-menu-nav">
                 <div class="nav-section">
                     <span class="nav-label">Panel Admin</span>
@@ -124,10 +115,9 @@
                     </ul>
                 </div>
             </nav>
-
             <div class="sidebar-footer">
                 <div class="user-profile">
-                    <div class="user-avatar"><img src="https://ui-avatars.com/api/?name=User&background=10B981&color=fff" id="user-avatar"></div>
+                    <div class="user-avatar"><img src="https://ui-avatars.com/api/?name=User" id="user-avatar"></div>
                     <div class="user-info">
                         <span class="user-name" id="user-name">Memuat...</span>
                         <span class="user-role" id="user-role">Karyawan</span>
@@ -165,43 +155,51 @@
                             <div class="live-clock" id="live-clock">00:00:00</div>
                             <div class="camera-box" style="margin: 15px auto; width: 280px; height: 210px; background: #000; border-radius: 12px; overflow: hidden; border: 3px solid #10b981; position: relative;">
                                 <video id="webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
-                                <div style="position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px;">PREVIEW</div>
                             </div>
-                            <p id="location-text" style="font-size: 0.85rem; color: #10b981; font-weight: 500;"><i class="fas fa-map-marker-alt"></i> Mencari lokasi...</p>
+                            <p id="location-text" style="font-size: 0.85rem; color: #10b981;"><i class="fas fa-map-marker-alt"></i> Mencari lokasi...</p>
                         </div>
                         <div class="attendance-buttons" id="attendance-btns">
-                            <div style="text-align: center; color: #999; padding: 20px;">
-                                <i class="fas fa-sync fa-spin"></i> Memuat status...
-                            </div>
+                            <div style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-sync fa-spin"></i> Memuat...</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="page" id="page-attendance-reports">
                     <div class="reports-container">
-                        <div class="reports-header">
-                            <h3><i class="fas fa-file-invoice"></i> Rekap Absensi & Lembur</h3>
-                        </div>
-
+                        <div class="reports-header"><h3><i class="fas fa-file-invoice"></i> Rekap Absensi & Lembur</h3></div>
                         <div class="filter-row">
-                            <div class="filter-item">
-                                <label>Dari Tanggal</label>
-                                <input type="date" id="report-start-date">
-                            </div>
-                            <div class="filter-item">
-                                <label>Sampai Tanggal</label>
-                                <input type="date" id="report-end-date">
-                            </div>
-                            <div class="filter-item" style="flex:1">
-                                <label>Karyawan</label>
-                                <select id="report-employee-filter">
-                                    <option value="">Semua Karyawan</option>
-                                </select>
-                            </div>
-                            <button id="btn-export-attendance" class="btn-primary" style="height:38px; padding: 0 15px;">
-                                <i class="fas fa-file-excel"></i> Export
-                            </button>
+                            <div class="filter-item"><label>Dari</label><input type="date" id="report-start-date"></div>
+                            <div class="filter-item"><label>Sampai</label><input type="date" id="report-end-date"></div>
+                            <div class="filter-item" style="flex:1"><label>Karyawan</label><select id="report-employee-filter"><option value="">Semua Karyawan</option></select></div>
+                            <button id="btn-export-attendance" class="btn-primary" style="height:38px"><i class="fas fa-file-excel"></i> Export</button>
                         </div>
-
                         <div id="overtime-summary-card" style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; align-items: center; gap: 20px;">
-                            <div style="background: #
+                            <div style="background: #fde68a; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #92400e;"><i class="fas fa-stopwatch"></i></div>
+                            <div>
+                                <h4 style="margin: 0; color: #b45309; font-size: 11px; text-transform: uppercase;">Total Jam Lembur Terpilih</h4>
+                                <p style="margin: 0; font-size: 18px; font-weight: 700; color: #78350f;"><span id="total-overtime-hours">0</span></p>
+                            </div>
+                        </div>
+                        <div class="reports-table-card">
+                            <div class="table-responsive">
+                                <table class="reports-table" style="width: 100%; border-collapse: collapse;">
+                                    <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                        <tr>
+                                            <th>No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Ket</th><th>Mulai</th><th>Selesai</th><th style="background:#fffbeb">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attendance-reports-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-payroll-reports">
+                    <div class="reports-container">
+                        <div class="reports-header"><h3>Rekap Gaji (26 - 25)</h3></div>
+                        <div class="reports-table-card"><table class="reports-table"><thead><tr><th>Nama</th><th>Gaji Pokok</th><th>Lembur</th><th>Telat</th><th>BPJS</th><th style="color:#10b981">Bersih</th></tr></thead><tbody id="payroll-table-body"></tbody></table></div>
+                    </div>
+                </div>
+
+                <div
