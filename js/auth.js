@@ -16,12 +16,10 @@ const auth = {
         if (form) {
             form.onsubmit = async (e) => {
                 e.preventDefault();
-                console.log("Auth: Form disubmit!");
                 await this.handleLogin();
             };
         }
 
-        // Handle Logout Button
         const logoutBtn = document.getElementById('btn-logout');
         if (logoutBtn) {
             logoutBtn.onclick = () => this.handleLogout();
@@ -33,10 +31,7 @@ const auth = {
         const passwordEl = document.getElementById('login-password');
         const roleEl = document.querySelector('input[name="role"]:checked');
 
-        if (!emailEl || !passwordEl || !roleEl) {
-            console.error("Auth: Elemen form tidak ditemukan!");
-            return;
-        }
+        if (!emailEl || !passwordEl || !roleEl) return;
 
         const email = emailEl.value;
         const password = passwordEl.value;
@@ -50,20 +45,16 @@ const auth = {
 
         try {
             const res = await api.login(email, password);
-            console.log("Auth: Respon dari server:", res);
-
             if (res.success && res.data) {
-                // Simpan data user dan tambahkan role
                 this.user = { ...res.data, role: res.data.role || role };
                 storage.set('session', this.user);
                 this.showApp();
             } else {
-                alert(res.error || "Login Gagal. Cek kembali data Anda.");
+                alert(res.error || "Login Gagal.");
                 this.resetButton();
             }
         } catch (err) {
-            console.error("Auth: Error fatal saat login:", err);
-            alert("Terjadi kesalahan sistem. Silakan coba lagi.");
+            alert("Kesalahan sistem.");
             this.resetButton();
         }
     },
@@ -77,37 +68,46 @@ const auth = {
     },
 
     showApp() {
-    const loginCont = document.getElementById('login-container');
-    const appCont = document.getElementById('app-container');
-    
-    if (loginCont) loginCont.style.display = 'none';
-    if (appCont) {
-        appCont.classList.remove('hidden');
-        appCont.style.display = 'flex';
-    }
-
-    if (this.user) {
-        // Update Nama & Role di Sidebar
-        document.getElementById('user-name').textContent = this.user.name;
-        document.getElementById('user-role').textContent = this.user.role === 'admin' ? 'Administrator' : 'Karyawan';
+        const loginCont = document.getElementById('login-container');
+        const appCont = document.getElementById('app-container');
         
-        // MANAJEMEN MENU (PENTING!)
-        const adminMenu = document.getElementById('admin-menu-nav');
-        const empMenu = document.getElementById('employee-menu');
-
-        if (this.user.role === 'admin') {
-            if (adminMenu) adminMenu.classList.remove('hidden');
-            if (empMenu) empMenu.classList.add('hidden'); // Sembunyikan menu karyawan jika admin
-            router.navigate('admin-dashboard');
-        } else {
-            if (adminMenu) adminMenu.classList.add('hidden'); // Sembunyikan menu admin jika karyawan
-            if (empMenu) empMenu.classList.remove('hidden');
-            router.navigate('dashboard');
+        if (loginCont) loginCont.style.display = 'none';
+        if (appCont) {
+            appCont.classList.remove('hidden');
+            appCont.style.display = 'flex';
         }
-    }
-}
 
-    // --- FUNGSI KRUSIAL UNTUK ROUTER ---
+        if (this.user) {
+            // Update UI Identitas
+            document.getElementById('user-name').textContent = this.user.name;
+            const welcomeEl = document.getElementById('welcome-name');
+            if (welcomeEl) welcomeEl.textContent = this.user.name.split(' ')[0];
+            
+            document.getElementById('user-role').textContent = 
+                this.user.role === 'admin' ? 'Administrator' : 'Karyawan';
+            
+            // Manajemen Menu Admin vs Karyawan
+            const adminMenu = document.getElementById('admin-menu-nav');
+            const empMenu = document.getElementById('employee-menu');
+
+            if (this.user.role === 'admin') {
+                if (adminMenu) adminMenu.classList.remove('hidden');
+                if (empMenu) empMenu.classList.add('hidden');
+                if (window.router) router.navigate('admin-dashboard');
+            } else {
+                if (adminMenu) adminMenu.classList.add('hidden');
+                if (empMenu) empMenu.classList.remove('hidden');
+                if (window.router) router.navigate('dashboard');
+                
+                // OPTIMASI: Langsung siapkan kamera & GPS di background
+                if (window.absensi) {
+                    console.log("Auth: Memanaskan hardware absensi...");
+                    absensi.init(); 
+                }
+            }
+        }
+    }, // <-- Tadi kurang kurung kurawal ini
+
     isLoggedIn() {
         return this.user !== null;
     },
@@ -121,8 +121,5 @@ const auth = {
     }
 };
 
-// Pastikan inisialisasi berjalan
 document.addEventListener('DOMContentLoaded', () => auth.init());
-
-// Ekspos ke global agar bisa dibaca router.js
 window.auth = auth;
