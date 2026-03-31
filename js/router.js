@@ -72,12 +72,23 @@ const router = {
         this.triggerPageInit(page);
     },
 
-    triggerPageInit(page) {
+triggerPageInit(page) {
         try {
+            // Pemicu khusus halaman Absensi agar tombol & kamera sigap
+            if (page === 'absensi' && window.initAbsensi) {
+                window.initAbsensi();
+            }
+            
+            // Pemicu khusus Laporan Admin
             if (page === 'attendance-reports' && window.adminReports) {
                 window.adminReports.init();
             }
-            // Anda bisa tambah init untuk halaman lain di sini
+
+            // Tambahkan pemicu Dashboard jika perlu update data statistik
+            if (page === 'dashboard' && window.initDashboard) {
+                window.initDashboard();
+            }
+            
         } catch (e) { 
             console.error("Router: Gagal memuat data halaman " + page, e); 
         }
