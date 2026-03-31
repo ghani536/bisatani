@@ -1,25 +1,17 @@
 const auth = {
-    currentUser: null,
-
+    user: null,
     init() {
-        // Cek apakah sudah ada sesi
         const session = storage.get('session');
         if (session) {
-            this.currentUser = session;
+            this.user = session;
             this.showApp();
         }
-
-        const loginForm = document.getElementById('login-form');
-        if (loginForm) {
-            loginForm.onsubmit = (e) => this.handleLogin(e);
-        }
-
+        const form = document.getElementById('login-form');
+        if (form) form.onsubmit = (e) => this.handleLogin(e);
+        
         const logoutBtn = document.getElementById('btn-logout');
-        if (logoutBtn) {
-            logoutBtn.onclick = () => this.handleLogout();
-        }
+        if (logoutBtn) logoutBtn.onclick = () => this.handleLogout();
     },
-
     async handleLogin(e) {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
@@ -27,53 +19,36 @@ const auth = {
         const role = document.querySelector('input[name="role"]:checked').value;
 
         try {
-            const res = await api.post({ action: 'login', email, password });
-
+            const res = await api.login(email, password);
             if (res.success && res.data) {
-                this.currentUser = res.data;
-                this.currentUser.role = res.data.role || role;
-                storage.set('session', this.currentUser);
-                
+                this.user = res.data;
+                this.user.role = res.data.role || role;
+                storage.set('session', this.user);
                 this.showApp();
-                if(window.toast) toast.success("Selamat datang!");
             } else {
                 alert(res.error || "Login Gagal");
             }
-        } catch (err) {
-            alert("Koneksi ke server gagal");
-        }
+        } catch (err) { alert("Error Server"); }
     },
-
     showApp() {
-        const login = document.getElementById('login-container');
+        document.getElementById('login-container').style.display = 'none';
         const app = document.getElementById('app-container');
+        app.classList.remove('hidden');
+        app.style.display = 'flex';
         
-        if (login) login.style.display = 'none';
-        if (app) {
-            app.classList.remove('hidden');
-            app.style.display = 'flex';
-        }
-
-        // Update Nama di Sidebar
         const nameEl = document.getElementById('user-name');
-        if (nameEl && this.currentUser) nameEl.textContent = this.currentUser.name;
+        if (nameEl && this.user) nameEl.textContent = this.user.name;
 
-        // Navigasi awal
         if (window.router) {
-            const target = (this.currentUser.role === 'admin') ? 'admin-dashboard' : 'dashboard';
+            const target = (this.user.role === 'admin') ? 'admin-dashboard' : 'dashboard';
             router.navigate(target);
         }
     },
-
     handleLogout() {
         storage.clear();
         window.location.reload();
     },
-
-    isLoggedIn() {
-        return this.currentUser !== null;
-    }
+    isLoggedIn() { return this.user !== null; }
 };
-
 document.addEventListener('DOMContentLoaded', () => auth.init());
 window.auth = auth;
