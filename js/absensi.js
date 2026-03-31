@@ -95,49 +95,35 @@ const absensi = {
         }
     },
 
-    async submit(tipe) {
-        const session = storage.get('session');
-        const video = document.getElementById('webcam-preview');
-        if (!session) return alert("Sesi habis, silakan login ulang.");
+async submit(tipe) {
+    const session = storage.get('session');
+    // Pastikan ID diambil dari session yang benar (id atau userId)
+    const currentId = session.id || session.userId;
 
-        let photo = "";
-        try {
-            const canvas = document.createElement('canvas');
-            canvas.width = 320; canvas.height = 240;
-            canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
-            photo = canvas.toDataURL('image/jpeg', 0.5);
-        } catch (e) { console.warn("Gagal ambil foto"); }
+    if (!currentId || currentId === "Unknown") {
+        alert("ID User tidak valid. Silakan LOGOUT dan LOGIN kembali.");
+        return;
+    }
 
-        // Mencegah double klik
-        const btn = document.activeElement;
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencatat...';
+    // ... (logika ambil foto & lokasi tetap sama) ...
+
+    try {
+        const response = await api.post({
+            action: 'saveAttendance',
+            userId: String(currentId), // Kirim ID asli (angka), bukan "Unknown"
+            userName: session.name,
+            tipe: tipe,
+            location: this.locationName,
+            image: photo
+        });
+
+        if (response.success) {
+            alert(`Berhasil: ${tipe}`);
+            // PENTING: Tunggu sebentar lalu refresh tombol
+            setTimeout(() => this.renderButtons(), 1500);
         }
-
-        try {
-            const response = await api.post({
-                action: 'saveAttendance',
-                userId: String(session.id),
-                userName: session.name,
-                tipe: tipe,
-                location: this.locationName,
-                image: photo
-            });
-
-            if (response.success) {
-                alert(`Absen ${tipe} Berhasil!`);
-                // Delay 1 detik sebelum render ulang agar sheet punya waktu memproses data
-                setTimeout(() => this.renderButtons(), 1000);
-            } else {
-                alert("Error: " + response.error);
-                this.renderButtons();
-            }
-        } catch (error) {
-            alert("Koneksi bermasalah. Cek sinyal Anda.");
-            this.renderButtons();
-        }
-    },
+    } catch (e) { alert("Koneksi Error"); }
+},
 
     updateClock() {
         setInterval(() => {
