@@ -1,92 +1,79 @@
 /**
  * Portal Karyawan - Admin Reports PT. BISATANI
- * Versi Update: Support 10 Kolom Attendance & Real-time Sync
+ * Fix: Handling Undefined & Invalid Date
  */
 
 const adminReports = {
-    attendanceData: [], // Sekarang akan berisi log mentah 10 kolom
-    jurnalData: [],
-    leaveData: [],
-    filters: {
-        attendance: { month: '', employee: '', type: '' }
-    },
+    attendanceData: [],
+    filters: { employee: '', type: '' },
 
-    async initAttendanceReports() {
-        if (!auth.isAdmin()) {
-            toast.error('Akses ditolak!');
-            router.navigate('dashboard');
-            return;
-        }
+    async init() {
         await this.loadData();
-        this.bindAttendanceEvents();
-        this.renderAttendanceReports();
+        this.bindEvents();
     },
 
     async loadData() {
+        const tbody = document.getElementById('attendance-reports-body');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</td></tr>';
+
         try {
-            // Kita panggil getAllAttendance yang mengambil data mentah dari Spreadsheet
-            const attResult = await api.post({ action: 'getAllAttendance' });
-            this.attendanceData = attResult.data || [];
-            
-            // Data pendukung lainnya tetap dimuat
-            const [empResult, jurnalResult, leaveResult] = await Promise.all([
-                api.getEmployees(),
-                api.getAllJournals(),
-                api.getAllLeaves()
-            ]);
-            
-            this.rawEmployees = empResult.data || [];
-            this.jurnalData = jurnalResult.data || [];
-            this.leaveData = leaveResult.data || [];
-            
+            const res = await api.post({ action: 'getAllAttendance' });
+            if (res.success) {
+                this.attendanceData = res.data || [];
+                this.populateEmployeeFilter();
+                this.renderTable();
+            }
         } catch (error) {
-            console.error('Error loading data:', error);
-            toast.error('Gagal memuat data dari server');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Gagal koneksi ke server</td></tr>';
         }
     },
 
-    bindAttendanceEvents() {
-        // Tombol Export & Print
-        const exportBtn = document.getElementById('btn-export-attendance');
-        if (exportBtn) exportBtn.onclick = () => this.exportToExcel('attendance');
-
-        // Filter Nama (Sangat penting untuk PT. Bisatani)
+    bindEvents() {
         const nameFilter = document.getElementById('report-employee-filter');
-        if (nameFilter) {
-            nameFilter.onchange = (e) => {
-                this.filters.attendance.employee = e.target.value;
-                this.renderAttendanceReports();
-            };
-        }
+        if (nameFilter) nameFilter.onchange = (e) => { this.filters.employee = e.target.value; this.renderTable(); };
 
-        // Filter Tipe (Masuk/Pulang/Lembur)
         const typeFilter = document.getElementById('report-type-filter');
-        if (typeFilter) {
-            typeFilter.onchange = (e) => {
-                this.filters.attendance.type = e.target.value;
-                this.renderAttendanceReports();
-            };
-        }
+        if (typeFilter) typeFilter.onchange = (e) => { this.filters.type = e.target.value; this.renderTable(); };
+
+        const exportBtn = document.getElementById('btn-export-attendance');
+        if (exportBtn) exportBtn.onclick = () => this.exportCSV();
     },
 
-    renderAttendanceReports() {
+    populateEmployeeFilter() {
+        const select = document.getElementById('report-employee-filter');
+        if (!select || !this.attendanceData.length) return;
+        const names = [...new Set(this.attendanceData.map(item => item.userName || item.username || item.name))].filter(Boolean).sort();
+        select.innerHTML = '<option value="">Semua Karyawan</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+    },
+
+    renderTable() {
         const tbody = document.getElementById('attendance-reports-body');
         if (!tbody) return;
 
-        // Terapkan Filter
-        const filtered = this.attendanceData.filter(row => {
-            const matchName = !this.filters.attendance.employee || row.userName === this.filters.attendance.employee;
-            const matchType = !this.filters.attendance.type || row.tipe === this.filters.attendance.type;
+        const filteredData = this.attendanceData.filter(row => {
+            const rowName = row.userName || row.username || row.name || '';
+            const matchName = !this.filters.employee || rowName === this.filters.employee;
+            const matchType = !this.filters.type || String(row.tipe || row.type).toUpperCase() === this.filters.type;
             return matchName && matchType;
         });
 
-        tbody.innerHTML = filtered.map((row, index) => {
-            const date = new Date(row.timestamp);
-            const tgl = date.toLocaleDateString('id-ID');
-            const jam = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        tbody.innerHTML = filteredData.map((row, index) => {
+            // FIX INVALID DATE: Cek apakah timestamp ada
+            const ts = row.timestamp || row.waktu || row.date;
+            const dateObj = ts ? new Date(ts) : null;
+            const isValidDate = dateObj && !isNaN(dateObj.getTime());
             
-            // Badge Warna Tipe
-            const tipe = String(row.tipe).toUpperCase();
+            const tgl = isValidDate ? dateObj.toLocaleDateString('id-ID') : '-';
+            const jam = isValidDate ? dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+            
+            // FIX UNDEFINED: Gunakan alternatif nama properti
+            const nama = row.userName || row.username || row.name || 'Unknown';
+            const tipe = String(row.tipe || row.type || 'UNDEFINED').toUpperCase();
+            const ket = row.keterangan || row.status || row.info || '-';
+            const mulai = row.mulaiLembur || row.mulailembur || '-';
+            const selesai = row.selesaiLembur || row.selesailembur || '-';
+            const total = row.totalJam || row.totaljam || '-';
+
             let badgeStyle = "background: #e2e8f0; color: #475569;";
             if (tipe === 'MASUK') badgeStyle = "background: #dcfce7; color: #166534;";
             if (tipe === 'PULANG') badgeStyle = "background: #fee2e2; color: #991b1b;";
@@ -94,54 +81,30 @@ const adminReports = {
 
             return `
                 <tr>
-                    <td>${index + 1}</td>
-                    <td>${tgl}<br><small>${jam}</small></td>
-                    <td><strong>${row.userName}</strong></td>
-                    <td><span class="status-badge" style="${badgeStyle} padding: 4px 8px; border-radius: 6px; font-size: 0.7rem;">${tipe}</span></td>
-                    <td style="font-size: 0.75rem; max-width: 150px;">${row.location || '-'}</td>
-                    <td>
-                        ${row.image ? `<img src="${row.image}" style="width:35px; height:35px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="adminReports.viewPhoto('${row.image}')">` : '-'}
+                    <td style="text-align:center;">${index + 1}</td>
+                    <td>${tgl}<br><small style="color:#64748b;">${jam}</small></td>
+                    <td><strong>${nama}</strong></td>
+                    <td><span style="${badgeStyle} padding: 4px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 600;">${tipe}</span></td>
+                    <td style="font-size: 0.75rem; color: #475569; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${row.location || '-'}</td>
+                    <td style="text-align:center;">
+                        ${row.image ? `<img src="${row.image}" style="width:35px; height:35px; border-radius:6px; object-fit:cover; cursor:pointer;" onclick="adminReports.viewPhoto('${row.image}')">` : '-'}
                     </td>
-                    <td><small>${row.keterangan || '-'}</small></td>
-                    <td style="color: #92400e; font-weight: 600;">${row.mulaiLembur || '-'}</td>
-                    <td style="color: #92400e; font-weight: 600;">${row.selesaiLembur || '-'}</td>
-                    <td style="background: #fffbeb; font-weight: bold; text-align: center; color: #b45309;">${row.totalJam || '-'}</td>
+                    <td><small>${ket}</small></td>
+                    <td style="color: #b45309; font-weight: 600; text-align:center;">${mulai}</td>
+                    <td style="color: #b45309; font-weight: 600; text-align:center;">${selesai}</td>
+                    <td style="background: #fffbeb; color: #b45309; font-weight: bold; text-align:center;">${total}</td>
                 </tr>
             `;
         }).join('');
     },
 
-    // Fungsi helper lainnya (viewPhoto, convertToCSV, dkk) tetap dipertahankan dari file lama Anda
-    viewPhoto(photoUrl) {
-        if (!photoUrl) return;
-        modal.show('Bukti Foto Absensi', `
-            <div style="text-align:center">
-                <img src="${photoUrl}" style="max-width:100%; border-radius:8px;">
-            </div>
-        `, [{ label: 'Tutup', class: 'btn-secondary', onClick: () => modal.close() }]);
-    },
-
-    exportToExcel(type) {
-        const data = this.attendanceData;
-        if (!data.length) return toast.error('Tidak ada data untuk diexport');
-        
-        const headers = "No,Tanggal,Nama,Tipe,Lokasi,Keterangan,Mulai Lembur,Selesai Lembur,Total Jam\n";
-        const rows = data.map((r, i) => {
-            return `${i+1},"${r.timestamp}","${r.userName}","${r.tipe}","${r.location}","${r.keterangan}","${r.mulaiLembur}","${r.selesaiLembur}","${r.totalJam}"`;
-        }).join("\n");
-
-        this.downloadFile(headers + rows, 'Rekap_Absensi_Bisatani.csv', 'text/csv');
-    },
-
-    downloadFile(content, filename, contentType) {
-        const blob = new Blob([content], { type: contentType });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
+    viewPhoto(url) {
+        if (typeof modal !== 'undefined') {
+            modal.show('Foto Absensi', `<div style="text-align:center"><img src="${url}" style="max-width:100%; border-radius:12px;"></div>`, 
+            [{ label: 'Tutup', class: 'btn-secondary', onClick: () => modal.close() }]);
+        } else { window.open(url, '_blank'); }
     }
 };
 
+window.initAttendanceReports = () => adminReports.init();
 window.adminReports = adminReports;
-window.initAttendanceReports = () => adminReports.initAttendanceReports();
