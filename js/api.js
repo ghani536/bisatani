@@ -1,5 +1,5 @@
 /**
- * Portal Karyawan - API Service PT. BISATANI
+ * Portal Karyawan - API PT. BISATANI
  */
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxiYpnlQjl8rkLxw33WX0bC6a1bHbZN5SXk0Ln1tcL2EVXoDXTHNTpM5XfPIxDwm4Mt/exec';
 
@@ -14,7 +14,7 @@ const api = {
             return result;
         } catch (error) {
             console.error('API Error:', error);
-            return { success: false, error: 'Gagal terhubung ke server Google Sheets' };
+            return { success: false, error: 'Gagal terhubung ke Google Sheets' };
         }
     },
 
