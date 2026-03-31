@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Admin Reports PT. BISATANI
- * Fix: Sinkronisasi nama kolom dengan attendance.gs
+ * Fix: Case-Insensitive Mapping untuk Google Sheets
  */
 
 const adminReports = {
@@ -8,29 +8,29 @@ const adminReports = {
     filters: { employee: '', type: '' },
 
     async init() {
-        console.log("Inisialisasi Laporan...");
+        console.log("Memulai Laporan Admin...");
         await this.loadData();
         this.bindEvents();
     },
 
     async loadData() {
         const tbody = document.getElementById('attendance-reports-body');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;"><i class="fas fa-sync fa-spin"></i> Mengambil data dari server...</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;"><i class="fas fa-sync fa-spin"></i> Menghubungkan ke server...</td></tr>';
 
         try {
-            // Memanggil fungsi getAllAttendanceData dari attendance.gs
+            // Memanggil aksi yang sudah kita daftarkan di Code.gs
             const res = await api.post({ action: 'getAllAttendanceData' });
             
             if (res.success) {
                 this.attendanceData = res.data || [];
+                console.log("Data diterima:", this.attendanceData); // Cek di console F12
                 this.populateEmployeeFilter();
                 this.renderTable();
             } else {
-                if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Gagal: ' + res.error + '</td></tr>';
+                if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="color:red; text-align:center;">Error: ${res.error}</td></tr>`;
             }
         } catch (error) {
-            console.error("Error loadData:", error);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Koneksi ke script gagal.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="color:red; text-align:center;">Gagal memuat data. Periksa koneksi internet.</td></tr>';
         }
     },
 
@@ -49,8 +49,8 @@ const adminReports = {
         const select = document.getElementById('report-employee-filter');
         if (!select || !this.attendanceData.length) return;
         
-        // Menggunakan properti 'nama' atau 'userName' sesuai hasil getAllRows
-        const names = [...new Set(this.attendanceData.map(item => item.nama || item.userName || item.username))].filter(Boolean).sort();
+        // Cek properti nama (bisa 'nama', 'username', atau 'userName')
+        const names = [...new Set(this.attendanceData.map(row => row.nama || row.userName || row.username))].filter(Boolean).sort();
         select.innerHTML = '<option value="">Semua Karyawan</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
     },
 
@@ -66,39 +66,43 @@ const adminReports = {
             return matchName && matchType;
         });
 
+        if (filteredData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>';
+            return;
+        }
+
         tbody.innerHTML = filteredData.map((row, index) => {
-            // Handle Tanggal
+            // 1. Ambil Waktu (Cek properti 'timestamp' atau 'waktu')
             const ts = row.timestamp || row.waktu || row.date;
-            const dateObj = ts ? new Date(ts) : null;
-            const isValidDate = dateObj && !isNaN(dateObj.getTime());
-            const tgl = isValidDate ? dateObj.toLocaleDateString('id-ID') : '-';
-            const jam = isValidDate ? dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+            const d = ts ? new Date(ts) : null;
+            const tgl = (d && !isNaN(d)) ? d.toLocaleDateString('id-ID') : '-';
+            const jam = (d && !isNaN(d)) ? d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '-';
             
-            // Pemetaan properti dari fungsi getAllRows (Biasanya jadi lowercase tanpa spasi)
+            // 2. Ambil Data Dasar (Mapping Variabel agar tidak Undefined)
             const nama = row.nama || row.userName || row.username || '-';
             const tipe = String(row.tipe || row.type || '-').toUpperCase();
             const lokasi = row.lokasi || row.location || '-';
             const foto = row.foto || row.image || row.photo || '';
             const ket = row.keterangan || row.status || row.info || '-';
             
-            // Kolom Lembur (H, I, J)
+            // 3. Ambil Data Lembur (PENTING: Cek huruf kecil semua)
             const mulai = row.mulailembur || row.mulaiLembur || '-';
             const selesai = row.selesailembur || row.selesaiLembur || '-';
-            const total = row.totaljam || row.totalJam || row.total || '-';
+            const total = row.totaljam || row.totalJam || '-';
 
-            // Style Badge
-            let badgeStyle = "background: #e2e8f0; color: #475569;";
-            if (tipe === 'MASUK') badgeStyle = "background: #dcfce7; color: #166534;";
-            if (tipe === 'PULANG') badgeStyle = "background: #fee2e2; color: #991b1b;";
-            if (tipe.includes('LEMBUR')) badgeStyle = "background: #fef3c7; color: #92400e;";
+            // 4. Tentukan Warna Badge
+            let style = "background: #e2e8f0; color: #475569;";
+            if (tipe === 'MASUK') style = "background: #dcfce7; color: #166534;";
+            if (tipe === 'PULANG') style = "background: #fee2e2; color: #991b1b;";
+            if (tipe.includes('LEMBUR')) style = "background: #fef3c7; color: #92400e;";
 
             return `
                 <tr>
                     <td style="text-align:center;">${index + 1}</td>
-                    <td><span style="font-size:0.85rem">${tgl}</span><br><small style="color:#64748b">${jam}</small></td>
+                    <td>${tgl}<br><small style="color:#64748b">${jam}</small></td>
                     <td><strong>${nama}</strong></td>
-                    <td><span style="${badgeStyle} padding: 4px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 600;">${tipe}</span></td>
-                    <td style="font-size: 0.75rem; color: #475569; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lokasi}</td>
+                    <td><span style="${style} padding: 4px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 600;">${tipe}</span></td>
+                    <td style="font-size: 0.7rem; color: #475569; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${lokasi}">${lokasi}</td>
                     <td style="text-align:center;">
                         ${foto ? `<img src="${foto}" style="width:35px; height:35px; border-radius:6px; object-fit:cover; cursor:pointer;" onclick="adminReports.viewPhoto('${foto}')">` : '-'}
                     </td>
@@ -113,30 +117,30 @@ const adminReports = {
 
     viewPhoto(url) {
         if (typeof modal !== 'undefined') {
-            modal.show('Foto Absensi', `<div style="text-align:center"><img src="${url}" style="max-width:100%; border-radius:12px;"></div>`, 
+            modal.show('Bukti Absensi', `<div style="text-align:center"><img src="${url}" style="max-width:100%; border-radius:12px;"></div>`, 
             [{ label: 'Tutup', class: 'btn-secondary', onClick: () => modal.close() }]);
         } else { window.open(url, '_blank'); }
     },
 
     exportCSV() {
-        if (!this.attendanceData.length) return alert("Data kosong");
-        const headers = ["No", "Tanggal", "Nama", "Tipe", "Lokasi", "Keterangan", "Mulai Lembur", "Selesai Lembur", "Total Jam"];
+        if (!this.attendanceData.length) return alert("Data tidak tersedia");
+        const headers = ["No", "Waktu", "Nama", "Tipe", "Lokasi", "Keterangan", "Mulai Lembur", "Selesai Lembur", "Total Jam"];
         const rows = this.attendanceData.map((r, i) => [
             i + 1,
-            new Date(r.timestamp || r.waktu).toLocaleString(),
-            r.nama || r.userName,
-            r.tipe || r.type,
-            r.lokasi || r.location,
-            r.keterangan || r.status,
-            r.mulailembur || r.mulaiLembur,
-            r.selesailembur || r.selesaiLembur,
-            r.totaljam || r.totalJam
+            `"${r.timestamp || r.waktu}"`,
+            `"${r.nama || r.userName}"`,
+            `"${r.tipe || r.type}"`,
+            `"${r.lokasi || r.location}"`,
+            `"${r.keterangan || r.status}"`,
+            `"${r.mulailembur || r.mulaiLembur}"`,
+            `"${r.selesailembur || r.selesaiLembur}"`,
+            `"${r.totaljam || r.totalJam}"`
         ]);
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'Rekap_Absensi_Bisatani.csv'; a.click();
+        a.href = url; a.download = 'Laporan_PT_Bisatani.csv'; a.click();
     }
 };
 
