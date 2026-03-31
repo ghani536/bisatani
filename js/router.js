@@ -21,7 +21,6 @@ const router = {
         document.querySelectorAll('.bottom-nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 if (item.getAttribute('onclick')) return;
-                
                 e.preventDefault();
                 const page = item.dataset.page;
                 if (page) this.navigate(page);
@@ -34,21 +33,27 @@ const router = {
             }
         });
         
-        const storedPage = storage.get('currentPage');
-        if (storedPage && this.routes.includes(storedPage)) {
-            this.showPage(storedPage, false);
-        } else {
-            this.showPage('dashboard', false);
+        // 3. Hanya jalankan router jika user sudah login
+        if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+            const storedPage = (typeof storage !== 'undefined') ? storage.get('currentPage') : null;
+            if (storedPage && this.routes.includes(storedPage)) {
+                this.showPage(storedPage, false);
+            } else {
+                this.showPage('dashboard', false);
+            }
         }
     },
     
     navigate(page) {
         if (!this.routes.includes(page)) return;
         this.showPage(page, true);
-        storage.set('currentPage', page);
+        if (typeof storage !== 'undefined') storage.set('currentPage', page);
     },
     
     showPage(page, pushState = true) {
+        // Proteksi: Jika belum login, jangan tampilkan halaman apa pun, biarkan di login screen
+        if (typeof auth !== 'undefined' && !auth.isLoggedIn()) return;
+
         this.currentPage = page;
         
         const titles = {
@@ -81,8 +86,12 @@ const router = {
             history.pushState({ page }, titles[page], `#${page}`);
         }
         
-        // JALANKAN INISIALISASI DATA
-        this.triggerPageInit(page);
+        // JALANKAN INISIALISASI DATA (Dibungkus try-catch agar tidak merusak login)
+        try {
+            this.triggerPageInit(page);
+        } catch (err) {
+            console.error("Router Init Error on page: " + page, err);
+        }
         
         const contentArea = document.querySelector('.page-content');
         if (contentArea) contentArea.scrollTop = 0;
@@ -101,12 +110,11 @@ const router = {
                 if (window.initEmployees) window.initEmployees();
                 break;
             case 'attendance-reports':
-                // --- UPDATE UNTUK PT. BISATANI ---
-                // Memanggil fungsi init di admin-reports.js
-                if (window.initAttendanceReports) {
-                    window.initAttendanceReports();
-                } else if (window.adminReports && window.adminReports.init) {
+                // Inisialisasi laporan admin dengan filter tanggal baru
+                if (window.adminReports && typeof window.adminReports.init === 'function') {
                     window.adminReports.init();
+                } else if (window.initAttendanceReports) {
+                    window.initAttendanceReports();
                 }
                 break;
             case 'payroll-reports':
@@ -120,7 +128,10 @@ const router = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    router.init();
+    // Pastikan init router dipanggil setelah sistem auth siap
+    setTimeout(() => {
+        router.init();
+    }, 100);
 });
 
 window.router = router;
