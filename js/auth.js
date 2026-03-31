@@ -77,32 +77,35 @@ const auth = {
     },
 
     showApp() {
-        console.log("Auth: Menampilkan Dashboard...");
-        const loginCont = document.getElementById('login-container');
-        const appCont = document.getElementById('app-container');
-        
-        if (loginCont) loginCont.style.display = 'none';
-        if (appCont) {
-            appCont.classList.remove('hidden');
-            appCont.style.display = 'flex';
-        }
+    const loginCont = document.getElementById('login-container');
+    const appCont = document.getElementById('app-container');
+    
+    if (loginCont) loginCont.style.display = 'none';
+    if (appCont) {
+        appCont.classList.remove('hidden');
+        appCont.style.display = 'flex';
+    }
 
-        if (this.user) {
-            const nameEl = document.getElementById('user-name');
-            const welcomeEl = document.getElementById('welcome-name');
-            const roleEl = document.getElementById('user-role');
-            
-            if (nameEl) nameEl.textContent = this.user.name;
-            if (welcomeEl) welcomeEl.textContent = this.user.name.split(' ')[0];
-            if (roleEl) roleEl.textContent = this.user.role === 'admin' ? 'Administrator' : 'Karyawan';
-            
-            // Navigasi Router
-            if (window.router) {
-                const target = (this.user.role === 'admin') ? 'admin-dashboard' : 'dashboard';
-                router.navigate(target);
-            }
+    if (this.user) {
+        // Update Nama & Role di Sidebar
+        document.getElementById('user-name').textContent = this.user.name;
+        document.getElementById('user-role').textContent = this.user.role === 'admin' ? 'Administrator' : 'Karyawan';
+        
+        // MANAJEMEN MENU (PENTING!)
+        const adminMenu = document.getElementById('admin-menu-nav');
+        const empMenu = document.getElementById('employee-menu');
+
+        if (this.user.role === 'admin') {
+            if (adminMenu) adminMenu.classList.remove('hidden');
+            if (empMenu) empMenu.classList.add('hidden'); // Sembunyikan menu karyawan jika admin
+            router.navigate('admin-dashboard');
+        } else {
+            if (adminMenu) adminMenu.classList.add('hidden'); // Sembunyikan menu admin jika karyawan
+            if (empMenu) empMenu.classList.remove('hidden');
+            router.navigate('dashboard');
         }
-    },
+    }
+}
 
     // --- FUNGSI KRUSIAL UNTUK ROUTER ---
     isLoggedIn() {
