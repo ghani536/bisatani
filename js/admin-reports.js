@@ -37,26 +37,43 @@ const adminReports = {
         select.innerHTML = '<option value="">Semua Karyawan</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
     },
 
-    renderTable() {
+  renderTable() {
         const tbody = document.getElementById('attendance-reports-body');
+        if (!tbody) return;
+
         const filtered = this.attendanceData.filter(row => {
-            return (!this.filters.employee || row.nama === this.filters.employee) && 
-                   (!this.filters.type || String(row.tipe).toUpperCase() === this.filters.type);
+            const rowName = row.nama || '-';
+            const rowTipe = String(row.tipe || '').toUpperCase();
+            return (!this.filters.employee || rowName === this.filters.employee) && 
+                   (!this.filters.type || rowTipe === this.filters.type);
         });
+
+        // Fungsi Helper untuk membersihkan format jam 1899
+        const formatJam = (val) => {
+            if (!val || val === '-') return '-';
+            const str = String(val);
+            // Jika formatnya ISO (ada huruf T), ambil jam:menit saja
+            if (str.includes('T')) {
+                const jamPart = str.split('T')[1]; // Ambil setelah T (05:40:48...)
+                return jamPart.substring(0, 5);    // Ambil 5 karakter awal (05:40)
+            }
+            return str; // Jika sudah format biasa, biarkan
+        };
 
         tbody.innerHTML = filtered.map((row, index) => {
             const d = row.timestamp ? new Date(row.timestamp) : null;
             const tgl = d ? d.toLocaleDateString('id-ID') : '-';
-            const jam = d ? d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '-';
+            const jamAbsen = d ? d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '-';
             
-            // Properti ini harus huruf kecil semua & tanpa spasi sesuai database.gs
             const nama = row.nama || '-';
             const tipe = String(row.tipe || '-').toUpperCase();
             const lokasi = row.lokasi || '-';
             const foto = row.foto || '';
             const telat = row.statustelat || '-';
-            const mulai = row.mulailembur || '-';
-            const selesai = row.selesailembur || '-';
+            
+            // --- BERSIHKAN JAM DI SINI ---
+            const mulai = formatJam(row.mulailembur);
+            const selesai = formatJam(row.selesailembur);
             const total = row.totaljam || '-';
 
             let badgeStyle = "background: #eee; color: #444;";
@@ -67,7 +84,7 @@ const adminReports = {
             return `
                 <tr>
                     <td style="text-align:center;">${index + 1}</td>
-                    <td>${tgl}<br><small>${jam}</small></td>
+                    <td>${tgl}<br><small>${jamAbsen}</small></td>
                     <td><strong>${nama}</strong></td>
                     <td><span style="${badgeStyle} padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">${tipe}</span></td>
                     <td style="font-size: 10px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lokasi}</td>
