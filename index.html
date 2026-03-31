@@ -7,6 +7,7 @@
     <meta name="color-scheme" content="light only">
     <meta name="theme-color" content="#ffffff">
     <title>Portal Karyawan | PT. Bisatani</title>
+    
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="css/dashboard.css">
@@ -16,38 +17,24 @@
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/face-rec.css">
     <link rel="stylesheet" href="css/modal.css">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        /* Proteksi agar tidak berantakan */
         .hidden { display: none !important; }
         .modal { display: none !important; }
         .modal[style*="display: flex"] { display: flex !important; }
         
-        /* Merapikan Filter Section */
-        .filter-row { 
-            display: flex; 
-            gap: 15px; 
-            flex-wrap: wrap; 
-            background: #f8fafc; 
-            padding: 15px; 
-            border-radius: 10px; 
-            margin-bottom: 15px; 
-            align-items: flex-end; 
-            border: 1px solid #e2e8f0;
-        }
+        /* Layout Tabel & Filter */
+        .reports-table-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; margin-top: 15px; }
+        .reports-table th { white-space: nowrap; font-size: 0.75rem; padding: 12px; }
+        .filter-row { display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 15px; align-items: flex-end; border: 1px solid #e2e8f0; }
         .filter-item { display: flex; flex-direction: column; gap: 5px; }
         .filter-item label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        .filter-item input, .filter-item select { 
-            padding: 8px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 6px; 
-            font-size: 13px; 
-            min-width: 140px; 
-            background: white;
-        }
+        .filter-item input, .filter-item select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; min-width: 140px; background: #fff; }
     </style>
 </head>
 
@@ -130,4 +117,105 @@
                     <span class="nav-label">Laporan & Gaji</span>
                     <ul class="nav-list">
                         <li class="nav-item" data-page="attendance-reports"><a href="#" class="nav-link"><i class="fas fa-file-invoice"></i><span>Rekap Absensi</span></a></li>
-                        <li class="nav-item" data-page="payroll-reports"><a href="#" class="nav-link"><i class="
+                        <li class="nav-item" data-page="payroll-reports"><a href="#" class="nav-link"><i class="fas fa-wallet"></i><span>Payroll (26 - 25)</span></a></li>
+                        <li class="nav-item" data-page="settings"><a href="#" class="nav-link"><i class="fas fa-cog"></i><span>Pengaturan Gaji</span></a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar"><img src="https://ui-avatars.com/api/?name=User" id="user-avatar"></div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">Memuat...</span>
+                        <span class="user-role" id="user-role">Karyawan</span>
+                    </div>
+                    <button class="btn-logout" id="btn-logout"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title" id="page-title">Dashboard</h1>
+                </div>
+                <div class="top-bar-right">
+                    <div class="current-time" id="current-time">
+                        <span class="time">00:00:00</span>
+                        <span class="date">-- --- ----</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="page-content" id="page-content">
+                <div class="page active" id="page-dashboard">
+                    <div class="welcome-card">
+                        <h2>Halo, <span id="welcome-name">Karyawan</span>! 👋</h2>
+                        <p>Selamat bekerja di PT. Bisatani. Jangan lupa absen tepat waktu.</p>
+                    </div>
+                </div>
+
+                <div class="page" id="page-absensi">
+                    <div class="absensi-container">
+                        <div class="absensi-header">
+                            <div class="live-clock" id="live-clock">00:00:00</div>
+                            <div class="camera-box" style="margin: 15px auto; width: 280px; height: 210px; background: #000; border-radius: 12px; overflow: hidden; border: 3px solid #10b981; position: relative;">
+                                <video id="webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                            </div>
+                            <p id="location-text" style="font-size: 0.85rem; color: #10b981;"><i class="fas fa-map-marker-alt"></i> Mencari lokasi...</p>
+                        </div>
+                        <div class="attendance-buttons" id="attendance-btns"></div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-attendance-reports">
+                    <div class="reports-container">
+                        <div class="reports-header"><h3><i class="fas fa-file-invoice"></i> Rekap Absensi</h3></div>
+                        <div class="filter-row">
+                            <div class="filter-item"><label>Dari</label><input type="date" id="report-start-date"></div>
+                            <div class="filter-item"><label>Sampai</label><input type="date" id="report-end-date"></div>
+                            <div class="filter-item">
+                                <label>Tipe</label>
+                                <select id="report-type-filter">
+                                    <option value="">Semua</option>
+                                    <option value="MASUK">MASUK</option>
+                                    <option value="PULANG">PULANG</option>
+                                    <option value="MULAI_LEMBUR">MULAI LEMBUR</option>
+                                    <option value="SELESAI_LEMBUR">SELESAI LEMBUR</option>
+                                </select>
+                            </div>
+                            <div class="filter-item" style="flex:1"><label>Karyawan</label><select id="report-employee-filter"><option value="">Semua</option></select></div>
+                        </div>
+                        <div id="overtime-summary-card" class="hidden" style="background:#fffbeb; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #fef3c7;">
+                            Total Lembur: <span id="total-overtime-hours" style="font-weight:bold;">0</span> Jam
+                        </div>
+                        <div class="reports-table-card">
+                            <div class="table-responsive">
+                                <table class="reports-table" style="width:100%">
+                                    <thead>
+                                        <tr><th>No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Ket</th><th>Mulai</th><th>Selesai</th><th>Total</th></tr>
+                                    </thead>
+                                    <tbody id="attendance-reports-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/absensi.js"></script>
+    <script src="js/payroll.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/admin-employees.js"></script>
+    <script src="js/admin-reports.js"></script>
+</body>
+</html>
