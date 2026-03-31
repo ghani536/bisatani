@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi High Performance PT. BISATANI
- * Fokus: Kecepatan munculnya tombol dan kemudahan penggunaan di HP
+ * Update: Fix Tombol Sinkronisasi & Cache Bypass
  */
 
 const absensi = {
@@ -8,12 +8,13 @@ const absensi = {
     locationName: "Lokasi tidak terdeteksi",
 
     async init() {
+        console.log("Absensi Initializing...");
         this.updateClock();
         
-        // 1. TAMPILKAN TOMBOL SECEPAT MUNGKIN (Tanpa nunggu kamera/GPS)
-        this.renderButtons();
+        // 1. TAMPILKAN TOMBOL SECEPAT MUNGKIN
+        await this.renderButtons();
 
-        // 2. JALANKAN KAMERA & GPS DI BACKGROUND (Paralel)
+        // 2. JALANKAN KAMERA & GPS DI BACKGROUND
         this.setupCamera();
         this.getReadableLocation();
     },
@@ -22,13 +23,12 @@ const absensi = {
         const video = document.getElementById('webcam-preview');
         if (!video) return;
         try {
-            // Gunakan resolusi kecil agar load ringan di HP
             this.stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: "user" } 
             });
             video.srcObject = this.stream;
         } catch (err) {
-            console.warn("Kamera Skip:", err);
+            console.warn("Kamera tidak tersedia:", err);
         }
     },
 
@@ -38,7 +38,7 @@ const absensi = {
             const pos = await new Promise((res, rej) => {
                 navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000 });
             });
-            // Reverse geocoding di background
+            
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`)
                 .then(r => r.json())
                 .then(data => {
@@ -55,14 +55,23 @@ const absensi = {
         const session = storage.get('session');
         if (!btnContainer || !session) return;
 
-        try {
-            // Cek status ke server
-            const res = await api.post({ action: 'getTodayAttendance', userId: session.id });
-            const logs = res.data || [];
+        // Beri tanda sedang memuat
+        btnContainer.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Mengecek status...</div>';
 
-            const hasMasuk = logs.some(l => l.tipe === 'MASUK');
-            const hasPulang = logs.some(l => l.tipe === 'PULANG');
-            const isLembur = logs.some(l => l.tipe === 'MULAI_LEMBUR') && !logs.some(l => l.tipe === 'SELESAI_LEMBUR');
+        try {
+            // Cek status ke server dengan Cache Bypass (_ts)
+            const res = await api.post({ 
+                action: 'getTodayAttendance', 
+                userId: String(session.id),
+                _ts: new Date().getTime() 
+            });
+            
+            const logs = res.data || [];
+            // Normalisasi tipe ke Uppercase untuk pengecekan akurat
+            const hasMasuk = logs.some(l => String(l.tipe).toUpperCase() === 'MASUK');
+            const hasPulang = logs.some(l => String(l.tipe).toUpperCase() === 'PULANG');
+            const isLembur = logs.some(l => String(l.tipe).toUpperCase() === 'MULAI_LEMBUR') && 
+                             !logs.some(l => String(l.tipe).toUpperCase() === 'SELESAI_LEMBUR');
 
             let html = '';
             if (!hasMasuk) {
@@ -75,12 +84,13 @@ const absensi = {
             } else if (isLembur) {
                 html = `<button class="attendance-btn" style="background:#d97706; color:white" onclick="absensi.submit('SELESAI_LEMBUR')">SELESAI LEMBUR</button>`;
             } else {
-                html = `<div style="text-align:center; padding:15px; background:#f0fdf4; color:#166534; border-radius:10px;">
-                            <i class="fas fa-check-circle"></i> Selesai untuk hari ini
+                html = `<div style="text-align:center; padding:15px; background:#f0fdf4; color:#166534; border-radius:10px; border:1px solid #bbf7d0;">
+                            <i class="fas fa-check-circle"></i> Selesai untuk hari ini. Sampai jumpa besok!
                         </div>`;
             }
             btnContainer.innerHTML = html;
         } catch (e) {
+            console.error("Render Buttons Error:", e);
             btnContainer.innerHTML = `<button class="attendance-btn" onclick="absensi.renderButtons()">Gagal Memuat. Klik untuk Coba Lagi</button>`;
         }
     },
@@ -88,20 +98,22 @@ const absensi = {
     async submit(tipe) {
         const session = storage.get('session');
         const video = document.getElementById('webcam-preview');
-        
-        // Ambil foto instan dari preview yang sudah jalan
+        if (!session) return alert("Sesi habis, silakan login ulang.");
+
         let photo = "";
         try {
             const canvas = document.createElement('canvas');
             canvas.width = 320; canvas.height = 240;
             canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
             photo = canvas.toDataURL('image/jpeg', 0.5);
-        } catch (e) {}
+        } catch (e) { console.warn("Gagal ambil foto"); }
 
+        // Mencegah double klik
         const btn = document.activeElement;
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencatat...';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencatat...';
+        }
 
         try {
             const response = await api.post({
@@ -115,22 +127,22 @@ const absensi = {
 
             if (response.success) {
                 alert(`Absen ${tipe} Berhasil!`);
-                await this.renderButtons(); // Langsung ganti tombol tanpa reload halaman
+                // Delay 1 detik sebelum render ulang agar sheet punya waktu memproses data
+                setTimeout(() => this.renderButtons(), 1000);
             } else {
                 alert("Error: " + response.error);
+                this.renderButtons();
             }
         } catch (error) {
-            alert("Koneksi bermasalah.");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+            alert("Koneksi bermasalah. Cek sinyal Anda.");
+            this.renderButtons();
         }
     },
 
     updateClock() {
         setInterval(() => {
             const el = document.getElementById('live-clock');
-            if (el) el.textContent = new Date().toLocaleTimeString('id-ID');
+            if (el) el.textContent = new Date().toLocaleTimeString('id-ID', { hour12: false });
         }, 1000);
     }
 };
