@@ -2,6 +2,7 @@ const auth = {
     currentUser: null,
 
     init() {
+        // Cek apakah sudah ada sesi
         const session = storage.get('session');
         if (session) {
             this.currentUser = session;
@@ -26,68 +27,42 @@ const auth = {
         const role = document.querySelector('input[name="role"]:checked').value;
 
         try {
-            const result = await api.login(email, password);
+            const res = await api.post({ action: 'login', email, password });
 
-            if (result.success && result.data) {
-                const user = {
-                    id: result.data.id,
-                    email: result.data.email,
-                    name: result.data.name,
-                    role: result.data.role || role,
-                    avatar: result.data.avatar || '',
-                    loginTime: new Date().toISOString()
-                };
-
-                this.currentUser = user;
-                storage.set('session', user);
+            if (res.success && res.data) {
+                this.currentUser = res.data;
+                this.currentUser.role = res.data.role || role;
+                storage.set('session', this.currentUser);
                 
-                // LANGSUNG PANGGIL SHOWAPP TANPA TUNGGU ROUTER
                 this.showApp();
-                toast.success(`Selamat datang, ${user.name}!`);
+                if(window.toast) toast.success("Selamat datang!");
             } else {
-                toast.error(result.error || 'Email atau password salah!');
+                alert(res.error || "Login Gagal");
             }
-        } catch (error) {
-            toast.error('Gagal terhubung ke server');
+        } catch (err) {
+            alert("Koneksi ke server gagal");
         }
     },
 
     showApp() {
-        const loginContainer = document.getElementById('login-container');
-        const appContainer = document.getElementById('app-container');
-
-        if (loginContainer && appContainer) {
-            // PAKSA SEMBUNYIKAN LOGIN
-            loginContainer.style.setProperty('display', 'none', 'important');
-            loginContainer.classList.add('hidden');
-            
-            // PAKSA TAMPILKAN APP
-            appContainer.style.setProperty('display', 'flex', 'important');
-            appContainer.classList.remove('hidden');
-
-            this.updateUserUI();
-
-            const adminNav = document.getElementById('admin-menu-nav');
-            const empNav = document.getElementById('employee-menu');
-            
-            if (this.currentUser && this.currentUser.role === 'admin') {
-                if (adminNav) adminNav.classList.remove('hidden');
-                if (empNav) empNav.classList.add('hidden');
-                if (window.router) window.router.navigate('admin-dashboard');
-            } else {
-                if (adminNav) adminNav.classList.add('hidden');
-                if (empNav) empNav.classList.remove('hidden');
-                if (window.router) window.router.navigate('dashboard');
-            }
+        const login = document.getElementById('login-container');
+        const app = document.getElementById('app-container');
+        
+        if (login) login.style.display = 'none';
+        if (app) {
+            app.classList.remove('hidden');
+            app.style.display = 'flex';
         }
-    },
 
-    updateUserUI() {
-        if (!this.currentUser) return;
+        // Update Nama di Sidebar
         const nameEl = document.getElementById('user-name');
-        const welcomeEl = document.getElementById('welcome-name');
-        if (nameEl) nameEl.textContent = this.currentUser.name;
-        if (welcomeEl) welcomeEl.textContent = this.currentUser.name.split(' ')[0];
+        if (nameEl && this.currentUser) nameEl.textContent = this.currentUser.name;
+
+        // Navigasi awal
+        if (window.router) {
+            const target = (this.currentUser.role === 'admin') ? 'admin-dashboard' : 'dashboard';
+            router.navigate(target);
+        }
     },
 
     handleLogout() {
@@ -96,7 +71,7 @@ const auth = {
     },
 
     isLoggedIn() {
-        return this.currentUser !== null || storage.get('session') !== null;
+        return this.currentUser !== null;
     }
 };
 
