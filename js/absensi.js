@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi High Performance PT. BISATANI
- * Update: Fix Koneksi, Fix ID Unknown, & Fast Sync
+ * Update: Fix Sinkronisasi Tombol, ID String, & Cache Bypass
  */
 
 const absensi = {
@@ -55,61 +55,71 @@ const absensi = {
         const session = storage.get('session');
         if (!btnContainer || !session) return;
 
-        btnContainer.innerHTML = '<div style="text-align:center"><i class="fas fa-sync fa-spin"></i> Cek Status...</div>';
+        btnContainer.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
 
         try {
             const currentId = session.id || session.userId;
+            
+            // Panggil action getAttendanceStatus sesuai attendance.gs
             const res = await api.post({ 
                 action: 'getAttendanceStatus', 
-                userId: String(currentId)
+                userId: String(currentId),
+                _ts: new Date().getTime() // Bypass cache browser
             });
             
+            if (!res.success) throw new Error(res.error);
+
             const logs = res.logs || [];
-            const jamSetting = res.jamMulaiLembur || "17:00";
+            const jamMulaiLembur = res.jamMulaiLembur || "17:00";
+            const serverTime = res.serverTime || "00:00";
 
-            // Cek Waktu Sekarang vs Waktu di Setting
-            const sekarang = new Date();
-            const [jamSet, menitSet] = jamSetting.split(':').map(Number);
-            const waktuBatasLembur = new Date();
-            waktuBatasLembur.setHours(jamSet, menitSet, 0);
+            // Deteksi Tipe (Pastikan Uppercase & Trim)
+            const hasMasuk = logs.some(l => String(l.tipe).toUpperCase().trim() === 'MASUK');
+            const hasPulang = logs.some(l => String(l.tipe).toUpperCase().trim() === 'PULANG');
+            const hasMulaiLembur = logs.some(l => String(l.tipe).toUpperCase().trim() === 'MULAI_LEMBUR');
+            const isLemburAktif = hasMulaiLembur && !logs.some(l => String(l.tipe).toUpperCase().trim() === 'SELESAI_LEMBUR');
 
-            const sudahBolehLembur = sekarang >= waktuBatasLembur;
-
-            const hasMasuk = logs.some(l => l.tipe === 'MASUK');
-            const hasPulang = logs.some(l => l.tipe === 'PULANG');
-            const isLembur = logs.some(l => l.tipe === 'MULAI_LEMBUR') && !logs.some(l => l.tipe === 'SELESAI_LEMBUR');
+            // Logika Waktu Lembur dari Server
+            const [h, m] = serverTime.split(':').map(Number);
+            const [lh, lm] = jamMulaiLembur.split(':').map(Number);
+            const sudahWaktunyaLembur = (h > lh) || (h === lh && m >= lm);
 
             let html = '';
-            
-            if (!hasMasuk) {
+
+            if (hasPulang) {
+                // KONDISI 1: SUDAH PULANG
+                html = `<div style="text-align:center; padding:15px; background:#f0fdf4; color:#166534; border-radius:10px; border:1px solid #bbf7d0;">
+                            <i class="fas fa-check-circle"></i> Selesai untuk hari ini.
+                        </div>`;
+            } 
+            else if (!hasMasuk) {
+                // KONDISI 2: BELUM MASUK
                 html = `<button class="attendance-btn clock-in-btn" onclick="absensi.submit('MASUK')">MASUK KERJA</button>`;
             } 
-            else if (isLembur) {
+            else if (isLemburAktif) {
+                // KONDISI 3: SEDANG LEMBUR
                 html = `<button class="attendance-btn" style="background:#d97706; color:white" onclick="absensi.submit('SELESAI_LEMBUR')">SELESAI LEMBUR</button>`;
-            }
-            else if (hasMasuk && !hasPulang) {
-                // Tombol Pulang Utama
+            } 
+            else {
+                // KONDISI 4: SUDAH MASUK (BISA PULANG ATAU LEMBUR)
                 html = `<button class="attendance-btn clock-out-btn" onclick="absensi.submit('PULANG')">PULANG KERJA</button>`;
                 
-                // Jika sudah melewati jam setting, munculkan tombol lembur
-                if (sudahBolehLembur) {
+                if (sudahWaktunyaLembur && !hasMulaiLembur) {
                     html += `
-                        <div style="margin-top:20px; padding:10px; border:1px dashed #f59e0b; border-radius:10px;">
-                            <p style="font-size:0.75rem; color:#b45309; margin-bottom:8px;">* Sudah masuk waktu lembur</p>
+                        <div style="margin-top:15px; padding:10px; border:1px dashed #f59e0b; border-radius:8px;">
+                            <p style="font-size:0.75rem; color:#b45309; margin-bottom:8px; font-weight:bold;">Waktu lembur tersedia</p>
                             <button class="attendance-btn" style="background:#f59e0b; color:white;" onclick="absensi.submit('MULAI_LEMBUR')">MULAI LEMBUR</button>
                         </div>
                     `;
                 }
-            } 
-            else {
-                html = `<div class="status-success">Absensi Selesai</div>`;
             }
-            
             btnContainer.innerHTML = html;
         } catch (e) {
-            btnContainer.innerHTML = `<button onclick="absensi.renderButtons()">Muat Ulang</button>`;
+            console.error("Render Error:", e);
+            btnContainer.innerHTML = `<button class="attendance-btn" onclick="absensi.renderButtons()">Gagal Sinkron. Coba Lagi</button>`;
         }
     },
+
     async submit(tipe) {
         const session = storage.get('session');
         const currentId = session.id || session.userId;
@@ -146,6 +156,7 @@ const absensi = {
 
             if (response.success) {
                 alert(`Absen ${tipe} Berhasil!`);
+                // Delay 1.5 detik agar Google Sheet selesai menulis data sebelum direfresh
                 setTimeout(() => this.renderButtons(), 1500);
             } else {
                 alert("Error: " + response.error);
