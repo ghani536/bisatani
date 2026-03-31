@@ -3,7 +3,7 @@
  * Jembatan antara Website (Vercel) dan Google Sheets
  */
 
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyJidfyy5B2qpc7E-3tHSr_ql5m6uUav9a0eZ6PegEqk3uoDvXixOnCakYRAi_GLg3m/exec'; 
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyK_ReweMsdeNhv5Xglf2ARHmrKkcTGIO_Lz6_UKjXXBX_92n7blXCns0k3XnRJOmg8/exec'; 
 
 const api = {
     /**
