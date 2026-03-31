@@ -4,19 +4,28 @@
  */
 
 const settings = {
-    async init() {
-        // Cek apakah user adalah admin
-        const role = localStorage.getItem('userRole');
-        if (role !== 'admin') {
-            alert('Anda tidak memiliki akses ke halaman ini!');
-            window.location.hash = '#dashboard';
-            return;
-        }
+    async savePayroll() {
+        const overtime = document.getElementById('set-overtime-rate').value;
+        const late = document.getElementById('set-late-rate').value;
 
-        await this.loadSettings();
-        this.initForms();
+        toast.info("Menyimpan tarif...");
+        await api.post({ action: 'saveSetting', key: 'overtime_rate', value: overtime });
+        const res = await api.post({ action: 'saveSetting', key: 'late_rate', value: late });
+
+        if (res.success) toast.success("Tarif lembur & denda berhasil diperbarui!");
     },
 
+    async saveWorkTime() {
+        const masuk = document.getElementById('set-jam-masuk').value;
+        const pulang = document.getElementById('set-jam-pulang').value;
+
+        toast.info("Menyimpan jam kerja...");
+        await api.post({ action: 'saveSetting', key: 'jam_masuk', value: masuk });
+        const res = await api.post({ action: 'saveSetting', key: 'jam_pulang', value: pulang });
+
+        if (res.success) toast.success("Jam operasional Bisatani diperbarui!");
+    }
+};
     async loadSettings() {
         try {
             // Mengambil semua setting dari Google Sheets
