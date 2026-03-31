@@ -1,3 +1,6 @@
+/**
+ * Portal Karyawan - API Service PT. BISATANI
+ */
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxiYpnlQjl8rkLxw33WX0bC6a1bHbZN5SXk0Ln1tcL2EVXoDXTHNTpM5XfPIxDwm4Mt/exec';
 
 const api = {
@@ -7,14 +10,17 @@ const api = {
                 method: 'POST',
                 body: JSON.stringify(data)
             });
-            return await response.json();
+            const result = await response.json();
+            return result;
         } catch (error) {
             console.error('API Error:', error);
-            return { success: false, error: 'Koneksi ke Google Sheets Gagal' };
+            return { success: false, error: 'Gagal terhubung ke server Google Sheets' };
         }
     },
+
     async login(email, password) {
-        return await this.post({ action: 'login', email, password });
+        return await this.post({ action: 'login', email: email, password: password });
     }
 };
+
 window.api = api;
