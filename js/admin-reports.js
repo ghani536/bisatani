@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Admin Reports PT. BISATANI
- * Fitur: Filter Karyawan, Tanggal, dan Tipe Absensi (FIXED)
+ * Fitur: Filter Karyawan, Tanggal, dan Tipe Absensi (FIXED & OTOMATIS)
  */
 const adminReports = {
     attendanceData: [],
@@ -75,12 +75,13 @@ const adminReports = {
     },
 
     bindEvents() {
-        // Pantau semua perubahan pada filter
+        // Pantau semua perubahan pada filter (Otomatis tanpa klik cari)
         const ids = ['report-employee-filter', 'report-start-date', 'report-end-date', 'report-type-filter'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.onchange = () => {
+                // Menggunakan 'input' agar langsung menyaring saat tanggal/opsi dipilih
+                el.oninput = () => {
                     this.filters.employee = document.getElementById('report-employee-filter').value;
                     this.filters.startDate = document.getElementById('report-start-date').value;
                     this.filters.endDate = document.getElementById('report-end-date').value;
@@ -109,15 +110,13 @@ const adminReports = {
             // Normalisasi Tanggal (Hanya ambil YYYY-MM-DD)
             const rowDate = (row.timestamp) ? String(row.timestamp).split('T')[0] : '';
             
-            // Normalisasi Tipe (PENTING untuk Filter Tipe)
+            // Normalisasi Tipe
             const rowType = String(row.tipe || '').toUpperCase().trim();
             const filterType = String(this.filters.type || '').toUpperCase().trim();
 
             const matchName = !this.filters.employee || row.nama === this.filters.employee;
             const matchStart = !this.filters.startDate || rowDate >= this.filters.startDate;
             const matchEnd = !this.filters.endDate || rowDate <= this.filters.endDate;
-            
-            // LOGIKA FILTER TIPE (Jika filter kosong = lolos, jika diisi harus sama persis)
             const matchType = !filterType || rowType === filterType;
             
             return matchName && matchStart && matchEnd && matchType;
