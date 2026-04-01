@@ -1,6 +1,7 @@
 /**
  * Portal Karyawan - Payroll Engine PT. BISATANI
  * Periode Gaji: Tanggal 26 (Bulan Lalu) s/d 25 (Bulan Ini)
+ * Fitur: Kalkulasi Otomatis, Slip Gaji, & Export Excel
  */
 const payroll = {
     config: {},
@@ -90,13 +91,13 @@ const payroll = {
         // Ambil Aturan dari Settings
         const jamMasukStandar = this.config.jam_masuk || "08:00";
         const tarifLembur = parseInt(this.config.overtime_rate || 0);
-        const dendaTelatPerHari = parseInt(this.config.late_rate || 0); 
+        const dendaTelatPerKejadian = parseInt(this.config.late_rate || 0); 
 
         let hadirCount = 0;
         let jamLemburTotal = 0;
         let telatCount = 0;
 
-        // Hitung Kehadiran & Telat (Hanya ambil tipe MASUK)
+        // Hitung Kehadiran & Telat
         userLogs.filter(l => l.type === 'MASUK').forEach(log => {
             hadirCount++;
             const jamMasukUser = new Date(log.timestamp).toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit' });
@@ -114,7 +115,7 @@ const payroll = {
         const gapok = parseInt(emp.gaji_pokok || 0);
         const bpjs = parseInt(emp.bpjs || 0);
         const bonusLembur = Math.round(jamLemburTotal * tarifLembur);
-        const totalDendaTelat = telatCount * dendaTelatPerHari;
+        const totalDendaTelat = telatCount * dendaTelatPerKejadian;
         
         const takeHomePay = (gapok + bonusLembur) - (bpjs + totalDendaTelat);
 
@@ -161,9 +162,7 @@ const payroll = {
     },
 
     showSlip(id) {
-        console.log("Mencari data slip ID:", id);
         const data = this.calculatedData.find(d => String(d.id) === String(id));
-        
         if (!data) {
             alert("Data gaji tidak ditemukan. Silakan klik 'Hitung' terlebih dahulu.");
             return;
@@ -172,11 +171,6 @@ const payroll = {
         const modal = document.getElementById('modal-slip');
         const content = document.getElementById('slip-content');
         
-        if (!modal || !content) {
-            alert("Error: Elemen Modal Slip tidak ditemukan!");
-            return;
-        }
-
         const bulanSelect = document.getElementById('payroll-month');
         const bulanNama = bulanSelect.options[bulanSelect.selectedIndex].text;
         const tahun = document.getElementById('payroll-year').value;
@@ -196,7 +190,7 @@ const payroll = {
                 <tr><td style="padding:4px 0; color:#ef4444;">(-) POTONGAN BPJS</td><td style="text-align:right; color:#ef4444;">- Rp ${data.bpjs.toLocaleString('id-ID')}</td></tr>
                 <tr><td colspan="2"><hr style="border:0; border-top:2px solid #334155; margin:10px 0;"></td></tr>
                 <tr style="font-weight:bold; font-size:16px;">
-                    <td style="color:#1e293b;">TOTAL GAJI BERSIH</td>
+                    <td style="color:#1e293b;">TOTAL GAJI</td>
                     <td style="text-align:right; color:#166534;">Rp ${data.totalGaji.toLocaleString('id-ID')}</td>
                 </tr>
             </table>
@@ -208,6 +202,35 @@ const payroll = {
 
         modal.style.display = 'flex';
         modal.style.zIndex = '10000'; 
+    },
+
+    exportToExcel() {
+        if (this.calculatedData.length === 0) {
+            alert("Hitung gaji terlebih dahulu sebelum export!");
+            return;
+        }
+
+        const bulan = document.getElementById('payroll-month').options[document.getElementById('payroll-month').selectedIndex].text;
+        const tahun = document.getElementById('payroll-year').value;
+        
+        // 1. Header CSV (Pakai separator titik koma agar Excel otomatis baca kolom)
+        let csv = "Nama Karyawan;ID Karyawan;Gaji Pokok;Total Hadir;Total Lembur (Jam);Bonus Lembur;Denda Telat;Potongan BPJS;Gaji Bersih\n";
+        
+        // 2. Data Baris
+        this.calculatedData.forEach(p => {
+            csv += `${p.name};${p.id};${p.gapok};${p.hadir};${p.lemburJam.toFixed(1)};${p.bonusLembur};${p.dendaTelat};${p.bpjs};${p.totalGaji}\n`;
+        });
+
+        // 3. Download Logic
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Payroll_BISATANI_${bulan}_${tahun}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     },
 
     getPrevMonthName(currentMonth) {
