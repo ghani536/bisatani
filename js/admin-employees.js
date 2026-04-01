@@ -1,5 +1,6 @@
 /**
  * Portal Karyawan - Admin Employees PT. BISATANI
+ * Versi Lengkap: Add, Edit, Delete
  */
 const adminEmployees = {
     employees: [],
@@ -12,7 +13,7 @@ const adminEmployees = {
 
     async loadEmployees() {
         const tbody = document.getElementById('employees-table-body');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Memuat data...</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data...</td></tr>';
 
         try {
             const res = await api.post({ action: 'getEmployees' });
@@ -95,6 +96,28 @@ const adminEmployees = {
         document.getElementById('emp-gaji').value = emp.gaji_pokok;
         document.getElementById('emp-bpjs').value = emp.bpjs;
         document.getElementById('modal-employee').style.display = 'flex';
+    },
+
+    // --- INI FUNGSI YANG TADI HILANG ---
+    async deleteEmployee(id) {
+        if (!confirm(`Hapus karyawan dengan ID ${id}? Data tidak bisa dikembalikan!`)) return;
+
+        try {
+            const res = await api.post({ 
+                action: 'deleteEmployee', 
+                id: id 
+            });
+
+            if (res.success) {
+                alert("Karyawan berhasil dihapus!");
+                this.loadEmployees(); // Refresh tabel
+            } else {
+                alert("Gagal menghapus: " + res.error);
+            }
+        } catch (e) {
+            alert("Terjadi kesalahan koneksi saat menghapus.");
+        }
     }
 };
+
 window.adminEmployees = adminEmployees;
