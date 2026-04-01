@@ -90,13 +90,13 @@ const payroll = {
         // Ambil Aturan dari Settings
         const jamMasukStandar = this.config.jam_masuk || "08:00";
         const tarifLembur = parseInt(this.config.overtime_rate || 0);
-        const dendaTelatPerHari = parseInt(this.config.late_rate || 0); // Bisa per menit atau per hari, di sini kita hitung per kejadian telat
+        const dendaTelatPerHari = parseInt(this.config.late_rate || 0); 
 
         let hadirCount = 0;
         let jamLemburTotal = 0;
         let telatCount = 0;
 
-        // Hitung Kehadiran & Telat
+        // Hitung Kehadiran & Telat (Hanya ambil tipe MASUK)
         userLogs.filter(l => l.type === 'MASUK').forEach(log => {
             hadirCount++;
             const jamMasukUser = new Date(log.timestamp).toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit' });
@@ -145,9 +145,9 @@ const payroll = {
             <tr>
                 <td style="padding:12px;"><strong>${p.name}</strong><br><small>${p.id}</small></td>
                 <td>Rp ${p.gapok.toLocaleString('id-ID')}</td>
-                <td style="text-align:center;">${p.hadir}</td>
+                <td style="text-align:center;">${p.hadir} Hari</td>
                 <td style="text-align:center;">${p.lemburJam.toFixed(1)} j</td>
-                <td style="color:#10b981;">+${p.bonusLembur.toLocaleString('id-ID')}</td>
+                <td style="color:#10b981; font-weight:600;">+${p.bonusLembur.toLocaleString('id-ID')}</td>
                 <td style="color:#ef4444;">-${p.dendaTelat.toLocaleString('id-ID')}</td>
                 <td style="color:#ef4444;">-${p.bpjs.toLocaleString('id-ID')}</td>
                 <td style="background:#f0fdf4; font-weight:700; color:#166534;">Rp ${p.totalGaji.toLocaleString('id-ID')}</td>
@@ -161,58 +161,61 @@ const payroll = {
     },
 
     showSlip(id) {
-        const data = this.calculatedData.find(d => d.id === id);
-        if (!data) return;
+        console.log("Mencari data slip ID:", id);
+        const data = this.calculatedData.find(d => String(d.id) === String(id));
+        
+        if (!data) {
+            alert("Data gaji tidak ditemukan. Silakan klik 'Hitung' terlebih dahulu.");
+            return;
+        }
 
         const modal = document.getElementById('modal-slip');
         const content = document.getElementById('slip-content');
         
         if (!modal || !content) {
-            alert("Modal slip tidak ditemukan di HTML!");
+            alert("Error: Elemen Modal Slip tidak ditemukan!");
             return;
         }
 
-        const tglCetak = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        const bulanSelect = document.getElementById('payroll-month');
+        const bulanNama = bulanSelect.options[bulanSelect.selectedIndex].text;
+        const tahun = document.getElementById('payroll-year').value;
 
         content.innerHTML = `
-            <div style="border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                <strong>NAMA : ${data.name}</strong><br>
-                <strong>ID   : ${data.id}</strong><br>
-                <span>TGL  : ${tglCetak}</span>
+            <div style="text-align:center; border-bottom:2px dashed #eee; padding-bottom:10px; margin-bottom:15px;">
+                <h3 style="margin:0; color:#10b981;">PT. BISATANI</h3>
+                <small style="color:#64748b;">Periode: 26 ${this.getPrevMonthName(bulanNama)} - 25 ${bulanNama} ${tahun}</small>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>Gaji Pokok</span>
-                <span>Rp ${data.gapok.toLocaleString('id-ID')}</span>
+            <table style="width:100%; border-collapse:collapse; font-size:13px; font-family:monospace;">
+                <tr><td style="padding:4px 0;">NAMA</td><td>: <strong>${data.name}</strong></td></tr>
+                <tr><td style="padding:4px 0;">ID KARYAWAN</td><td>: ${data.id}</td></tr>
+                <tr><td colspan="2"><hr style="border:0; border-top:1px solid #eee; margin:10px 0;"></td></tr>
+                <tr><td style="padding:4px 0;">GAJI POKOK</td><td style="text-align:right;">Rp ${data.gapok.toLocaleString('id-ID')}</td></tr>
+                <tr><td style="padding:4px 0; color:#10b981;">(+) LEMBUR (${data.lemburJam.toFixed(1)}j)</td><td style="text-align:right; color:#10b981;">+ Rp ${data.bonusLembur.toLocaleString('id-ID')}</td></tr>
+                <tr><td style="padding:4px 0; color:#ef4444;">(-) DENDA TELAT (${data.telatCount}x)</td><td style="text-align:right; color:#ef4444;">- Rp ${data.dendaTelat.toLocaleString('id-ID')}</td></tr>
+                <tr><td style="padding:4px 0; color:#ef4444;">(-) POTONGAN BPJS</td><td style="text-align:right; color:#ef4444;">- Rp ${data.bpjs.toLocaleString('id-ID')}</td></tr>
+                <tr><td colspan="2"><hr style="border:0; border-top:2px solid #334155; margin:10px 0;"></td></tr>
+                <tr style="font-weight:bold; font-size:16px;">
+                    <td style="color:#1e293b;">TOTAL GAJI BERSIH</td>
+                    <td style="text-align:right; color:#166534;">Rp ${data.totalGaji.toLocaleString('id-ID')}</td>
+                </tr>
+            </table>
+            <div style="margin-top:25px; text-align:center; font-size:10px; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:10px;">
+                Dicetak pada: ${new Date().toLocaleString('id-ID')}<br>
+                * Dokumen Sah PT. BISATANI *
             </div>
-            <div style="display: flex; justify-content: space-between; color: #10b981;">
-                <span>Bonus Lembur (${data.lemburJam.toFixed(1)}j)</span>
-                <span>+Rp ${data.bonusLembur.toLocaleString('id-ID')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; color: #ef4444;">
-                <span>Denda Telat (${data.telatCount}x)</span>
-                <span>-Rp ${data.dendaTelat.toLocaleString('id-ID')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; color: #ef4444; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
-                <span>Potongan BPJS</span>
-                <span>-Rp ${data.bpjs.toLocaleString('id-ID')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 10px; background: #f0fdf4; padding: 5px;">
-                <span>TOTAL GAJI</span>
-                <span>Rp ${data.totalGaji.toLocaleString('id-ID')}</span>
-            </div>
-            <p style="text-align: center; font-size: 10px; margin-top: 20px; color: #94a3b8;">
-                * Slip ini digenerate otomatis oleh sistem PT. BISATANI
-            </p>
         `;
 
         modal.style.display = 'flex';
+        modal.style.zIndex = '10000'; 
+    },
+
+    getPrevMonthName(currentMonth) {
+        const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        let idx = months.indexOf(currentMonth);
+        if (idx <= 0) idx = 12;
+        return months[idx - 1];
     }
 };
 
-// Inisialisasi
 window.payroll = payroll;
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.router && window.router.currentPage === 'payroll-reports') {
-        payroll.init();
-    }
-});
