@@ -1,202 +1,103 @@
 /**
- * Portal Karyawan - Admin Dashboard
- * Admin dashboard with employee statistics
+ * Portal Karyawan - Admin Dashboard PT. BISATANI
  */
-
 const adminDashboard = {
-    employees: [],
-    attendance: [],
-    leaves: [],
-
-    async init() {
-        if (!auth.isAdmin()) {
-            toast.error('Anda tidak memiliki akses!');
-            router.navigate('dashboard');
-            return;
-        }
-
-        await this.loadData();
-        this.updateStats();
-        this.renderRecentActivity();
-        this.renderOnlineUsers();
+    init() {
+        console.log("AdminDashboard: Mengambil data statistik...");
+        this.renderAll();
     },
 
-    async loadData() {
+    async renderAll() {
         try {
-            const [empResult, attResult, leaveResult, izinResult] = await Promise.all([
-                api.getEmployees(),
-                api.getAllAttendance(),
-                api.getAllLeaves(),
-                api.getAllIzin()
+            // 1. Ambil Semua Data Master
+            const [resEmp, resAtt, resCfg] = await Promise.all([
+                api.post({ action: 'getEmployees' }),
+                api.post({ action: 'getAllAttendanceData' }),
+                api.post({ action: 'getSettings' })
             ]);
-            this.employees = empResult.data || [];
-            this.attendance = attResult.data || [];
-            this.leaves = leaveResult.data || [];
-            this.izin = izinResult.data || [];
-        } catch (error) {
-            console.error('Error loading admin data:', error);
-            this.employees = storage.get('admin_employees', []);
-            this.attendance = storage.get('attendance', []);
-            this.leaves = storage.get('leaves', []);
-            this.izin = storage.get('izin', []);
-        }
-    },
 
-    updateStats() {
-        const totalEmployees = this.employees.length;
-        const todayStr = dateTime.getLocalDate(); // yyyy-MM-dd
+            if (!resEmp.success || !resAtt.success) return;
 
-        // Filter attendance to ONLY today's records
-        const todayAttendance = this.attendance.filter(a => a.date === todayStr);
+            const employees = resEmp.data || [];
+            const attendance = resAtt.data || [];
+            const config = resCfg.data || {};
 
-        // Compute from real Today records
-        let presentToday = 0;
-        let lateToday = 0;
+            // --- A. TOTAL KARYAWAN ---
+            document.getElementById('dash-total-emp').textContent = employees.length;
 
-        todayAttendance.forEach(att => {
-            if (att.clockIn) {
-                presentToday++;
-                // Check if late
-                if (att.status && att.status.toLowerCase() === 'terlambat') {
-                    lateToday++;
-                }
+            // --- B. HADIR HARI INI ---
+            const todayStr = new Date().toISOString().split('T')[0];
+            const hadirHariIni = attendance.filter(a => 
+                a.type === 'MASUK' && 
+                new Date(a.timestamp).toISOString().split('T')[0] === todayStr
+            ).length;
+            document.getElementById('dash-total-presence').textContent = hadirHariIni;
+
+            // --- C. HITUNG ESTIMASI GAJI & LEMBUR (Periode 26 - 25) ---
+            const now = new Date();
+            const startPeriod = new Date(now.getFullYear(), now.getMonth() - 1, 26, 0, 0, 0);
+            const endPeriod = new Date(now.getFullYear(), now.getMonth(), 25, 23, 59, 59);
+
+            let totalPayrollNominal = 0;
+            let totalOvertimeSum = 0;
+
+            employees.forEach(emp => {
+                // Filter absensi user ini di periode ini
+                const logs = attendance.filter(a => {
+                    const t = new Date(a.timestamp);
+                    return String(a.userId) === String(emp.id) && t >= startPeriod && t <= endPeriod;
+                });
+
+                // Hitung Jam Lembur & Denda Telat
+                let jamLembur = 0;
+                let telatKali = 0;
+                const jamMasukKantor = config.jam_masuk || "08:00";
+
+                logs.forEach(l => {
+                    if (l.type === 'SELESAI_LEMBUR') jamLembur += parseFloat(l.totalHours || 0);
+                    if (l.type === 'MASUK') {
+                        const jamUser = new Date(l.timestamp).toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit' });
+                        if (jamUser > jamMasukKantor) telatKali++;
+                    }
+                });
+
+                const gapok = parseInt(emp.gaji_pokok || 0);
+                const bonus = jamLembur * parseInt(config.overtime_rate || 0);
+                const denda = telatKali * parseInt(config.late_rate || 0);
+                const bpjs = parseInt(emp.bpjs || 0);
+
+                totalPayrollNominal += (gapok + bonus) - (denda + bpjs);
+                totalOvertimeSum += jamLembur;
+            });
+
+            document.getElementById('dash-total-payroll').textContent = "Rp " + totalPayrollNominal.toLocaleString('id-ID');
+            document.getElementById('dash-total-overtime').innerHTML = totalOvertimeSum.toFixed(1) + ' <small style="font-size: 14px;">jam</small>';
+
+            // --- D. AKTIVITAS TERBARU (5 Baris) ---
+            const recentContainer = document.getElementById('dash-recent-list');
+            const recentData = attendance.slice(-5).reverse(); // Ambil 5 data paling bawah di sheet
+
+            if (recentData.length === 0) {
+                recentContainer.innerHTML = '<p style="color:#94a3b8; font-size:13px; text-align:center;">Belum ada absensi.</p>';
+            } else {
+                recentContainer.innerHTML = recentData.map(r => `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${r.type === 'MASUK' ? '#10b981' : '#f43f5e'};"></div>
+                            <div>
+                                <span style="font-size: 13px; font-weight: 600; color: #1e293b;">${r.userName || r.userId}</span><br>
+                                <small style="color: #64748b;">${r.type}</small>
+                            </div>
+                        </div>
+                        <span style="font-size: 12px; color: #94a3b8;">${new Date(r.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</span>
+                    </div>
+                `).join('');
             }
-        });
 
-        // Compute those on leave (cuti / izin) for today
-        const onLeave = this.leaves.filter(l => l.status === 'approved' && l.startDate <= todayStr && l.endDate >= todayStr).length +
-            this.izin.filter(i => i.status === 'approved' && i.date === todayStr).length;
-
-        // Everyone not present and not on leave is absent
-        const absentToday = Math.max(0, totalEmployees - presentToday - onLeave);
-
-        // Count pending requests
-        const pendingLeaves = this.leaves.filter(l => l.status === 'pending').length;
-        const pendingIzin = this.izin.filter(i => i.status === 'pending').length;
-        const totalPending = pendingLeaves + pendingIzin;
-
-        // Update DOM
-        const els = {
-            'total-employees': totalEmployees,
-            'present-today': presentToday,
-            'absent-today': absentToday,
-            'late-today': lateToday,
-            'on-leave': onLeave,
-            'pending-requests': totalPending
-        };
-
-        Object.entries(els).forEach(([id, value]) => {
-            const el = document.getElementById(id);
-            if (el) {
-                // Animate number
-                this.animateNumber(el, parseInt(el.textContent) || 0, value);
-            }
-        });
-    },
-
-    animateNumber(element, start, end) {
-        const duration = 1000;
-        const startTime = performance.now();
-
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-
-            // Easing function
-            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-            const current = Math.floor(start + (end - start) * easeOutQuart);
-
-            element.textContent = current;
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    },
-
-    renderRecentActivity() {
-        const container = document.getElementById('admin-recent-activity');
-        if (!container) return;
-
-        const activities = [
-            { user: 'Ahmad Rizky', action: 'Clock In', time: '5 menit yang lalu', avatar: 'https://ui-avatars.com/api/?name=Ahmad&background=3B82F6&color=fff' },
-            { user: 'Budi Santoso', action: 'Mengajukan Cuti', time: '15 menit yang lalu', avatar: 'https://ui-avatars.com/api/?name=Budi&background=10B981&color=fff' },
-            { user: 'Citra Dewi', action: 'Mengisi Jurnal', time: '30 menit yang lalu', avatar: 'https://ui-avatars.com/api/?name=Citra&background=F59E0B&color=fff' },
-            { user: 'Dedi Pratama', action: 'Clock Out', time: '1 jam yang lalu', avatar: 'https://ui-avatars.com/api/?name=Dedi&background=EF4444&color=fff' },
-            { user: 'Eka Putri', action: 'Izin Sakit', time: '2 jam yang lalu', avatar: 'https://ui-avatars.com/api/?name=Eka&background=8B5CF6&color=fff' }
-        ];
-
-        container.innerHTML = activities.map(act => `
-            <div class="activity-item">
-                <div class="activity-avatar">
-                    <img src="${getAvatarUrl(act)}" alt="${act.user}">
-                </div>
-                <div class="activity-content">
-                    <p class="activity-text"><strong>${act.user}</strong> ${act.action}</p>
-                    <span class="activity-time">${act.time}</span>
-                </div>
-            </div>
-        `).join('');
-    },
-
-    renderOnlineUsers() {
-        const container = document.getElementById('admin-online-users');
-        if (!container) return;
-
-        const onlineUsers = this.employees.filter(e => e.status === 'active').slice(0, 5);
-        const onlineCount = onlineUsers.length;
-
-        const countEl = document.getElementById('online-count');
-        if (countEl) countEl.textContent = onlineCount;
-
-        container.innerHTML = onlineUsers.map(user => `
-            <div class="online-user-item">
-                <div class="user-status-dot"></div>
-                <div class="activity-avatar">
-                    <img src="${getAvatarUrl(user)}" alt="${user.name}">
-                </div>
-                <div class="activity-content">
-                    <p class="activity-text"><strong>${user.name}</strong></p>
-                    <span class="activity-time">${user.department} - ${user.position}</span>
-                </div>
-            </div>
-        `).join('');
-    },
-
-    // Charts initialization (placeholder - would use Chart.js in production)
-    initCharts() {
-        // This would be where Chart.js or similar library is initialized
-        // For now, we'll just show placeholders
-        const attendanceChart = document.getElementById('admin-attendance-chart');
-        const deptChart = document.getElementById('admin-dept-chart');
-
-        if (attendanceChart) {
-            attendanceChart.innerHTML = `
-                <div class="chart-placeholder">
-                    <i class="fas fa-chart-bar"></i>
-                    <p>Grafik Kehadiran 30 Hari Terakhir</p>
-                </div>
-            `;
-        }
-
-        if (deptChart) {
-            deptChart.innerHTML = `
-                <div class="chart-placeholder">
-                    <i class="fas fa-chart-pie"></i>
-                    <p>Distribusi Kehadiran per Departemen</p>
-                </div>
-            `;
+        } catch (e) {
+            console.error("Dashboard Error:", e);
         }
     }
 };
 
-// Global init function
-window.initAdminDashboard = () => {
-    adminDashboard.init();
-    adminDashboard.initCharts();
-};
-
-// Expose
 window.adminDashboard = adminDashboard;
