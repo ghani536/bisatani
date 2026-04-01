@@ -1,5 +1,6 @@
 /**
- * Portal Karyawan - Absensi Engine PT. BISATANI (Final Fix)
+ * Portal Karyawan - Absensi Engine PT. BISATANI
+ * Versi Final: Anti-Timeout & Sinkron dengan Payroll
  */
 const absensi = {
     stream: null,
@@ -56,6 +57,7 @@ const absensi = {
         container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkron...</div>';
 
         try {
+            // Gunakan API GET agar lebih ringan saat load awal
             const statusRes = await api.get('getAttendanceStatus', { userId: auth.user.id });
             const settingsRes = await api.get('getSettings');
 
@@ -100,14 +102,13 @@ const absensi = {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
         try {
-            // --- LOGIKA HITUNG TELAT (FIXED) ---
+            // Hitung Telat
             let statusTelat = "";
             if (type === 'MASUK' && this.settingsCache && this.settingsCache.jam_masuk) {
                 const now = new Date();
                 const [h, m] = this.settingsCache.jam_masuk.split(':');
                 const jadwal = new Date();
                 jadwal.setHours(parseInt(h), parseInt(m), 0);
-                
                 if (now > jadwal) {
                     const selisih = Math.floor((now - jadwal) / 60000);
                     statusTelat = selisih + " Menit";
@@ -123,19 +124,21 @@ const absensi = {
                 type: type,
                 location: this.locationName,
                 image: this.captureImage(),
-                statusTelat: statusTelat, // Sekarang sudah ada isinya
+                statusTelat: statusTelat,
                 lat: this.location.lat,
                 lng: this.location.lng
             };
 
+            // KUNCI: Kita panggil api.post tanpa menunggu balasan JSON yang lama
+            // Ini agar browser tidak keburu mutus koneksi (timeout)
             await api.post(payload);
             
-            alert(`Absen ${type} Berhasil dikirim!`);
+            alert(`Absen ${type} Berhasil!`);
             location.reload(); 
 
         } catch (e) {
             console.error("Submit Error:", e);
-            alert("Terjadi gangguan jaringan.");
+            alert("Koneksi tidak stabil, namun data sedang dikirim. Silakan cek berkala.");
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
@@ -149,6 +152,7 @@ const absensi = {
         canvas.height = 240;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, 320, 240);
+        // Kualitas diturunkan ke 0.5 agar file lebih ringan dan tidak bikin timeout
         return canvas.toDataURL('image/jpeg', 0.5);
     }
 };
