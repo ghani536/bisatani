@@ -1,82 +1,161 @@
 /**
- * Portal Karyawan - Payroll PT. BISATANI
- * Menghitung gaji periode 26 s/d 25
+ * Portal Karyawan - Payroll Engine PT. BISATANI
+ * Periode: 26 (Bulan Lalu) - 25 (Bulan Ini)
  */
-
 const payroll = {
+    config: {},
+    employees: [],
+    attendance: [],
+
+    init() {
+        console.log("Payroll: Engine Aktif...");
+        // Set tahun default ke tahun sekarang
+        const yearInput = document.getElementById('payroll-year');
+        if (yearInput) yearInput.value = new Date().getFullYear();
+        
+        // Set bulan default ke bulan sekarang
+        const monthInput = document.getElementById('payroll-month');
+        if (monthInput) monthInput.value = new Date().getMonth();
+    },
+
     async calculate() {
-        const month = document.getElementById('payroll-month').value;
-        const year = new Date().getFullYear(); // Bisa ditambah dropdown tahun di index.html jika perlu
+        const btn = document.querySelector('button[onclick="payroll.calculate()"]');
         const tbody = document.getElementById('payroll-table-body');
         
-        if (!tbody) return;
-
-        // Tampilan loading yang lebih manis
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center" style="padding: 20px;">
-                    <i class="fas fa-spinner fa-spin"></i> Sedang menghitung gaji periode 26 s/d 25...
-                </td>
-            </tr>`;
-        
         try {
-            const res = await api.post({ 
-                action: 'getPayroll', 
-                month: month, 
-                year: year 
-            });
-            
-            if (res.success) {
-                this.render(res.data);
-            } else {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">${res.error || 'Gagal menghitung data.'}</td></tr>`;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px;"><i class="fas fa-sync fa-spin"></i> Menghitung data kehadiran & gaji...</td></tr>';
+
+            const month = parseInt(document.getElementById('payroll-month').value);
+            const year = parseInt(document.getElementById('payroll-year').value);
+
+            // 1. Ambil Data Dasar (Karyawan, Settings, & Semua Absensi)
+            const [resEmp, resCfg, resAtt] = await Promise.all([
+                api.post({ action: 'getEmployees' }),
+                api.post({ action: 'getSettings' }),
+                api.post({ action: 'getAllAttendanceData' })
+            ]);
+
+            if (!resEmp.success || !resCfg.success || !resAtt.success) {
+                throw new Error("Gagal mengambil data dari server");
             }
+
+            this.employees = resEmp.data;
+            this.config = this.processConfig(resCfg.data);
+            this.attendance = resAtt.data;
+
+            // 2. Tentukan Range Tanggal (26 Bulan Lalu - 25 Bulan Ini)
+            const startDate = new Date(year, month - 1, 26);
+            const endDate = new Date(year, month, 25, 23, 59, 59);
+
+            // 3. Hitung Gaji per Karyawan
+            const payrollData = this.employees.map(emp => {
+                return this.calculateSingleEmployee(emp, startDate, endDate);
+            });
+
+            this.renderTable(payrollData);
+
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Gagal terhubung ke server. Periksa koneksi internet.</td></tr>';
+            alert("Gagal menghitung payroll: " + e.message);
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:red;">Terjadi kesalahan sistem.</td></tr>';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-calculator"></i> Hitung';
         }
     },
 
-    // Fungsi pembantu untuk format Rupiah agar tidak error jika data kosong
-    formatIDR(number) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'decimal',
-            minimumFractionDigits: 0
-        }).format(number || 0);
+    processConfig(data) {
+        const cfg = {};
+        data.forEach(item => { cfg[item.key] = item.value; });
+        return cfg;
     },
 
-    render(data) {
+    calculateSingleEmployee(emp, start, end) {
+        // Filter absensi karyawan ini di range tanggal terpilih
+        const logs = this.attendance.filter(a => {
+            const date = new Date(a.timestamp);
+            return a.userId === emp.id && date >= start && date <= end;
+        });
+
+        let totalHadir = 0;
+        let totalLemburJam = 0;
+        let kaliTelat = 0;
+
+        // Ambil aturan dari settings
+        const jamMasukKantor = this.config.jam_masuk || "08:00";
+        const tarifLembur = parseInt(this.config.overtime_rate || 0);
+        const dendaTelat = parseInt(this.config.late_rate || 0);
+
+        // Logika Hitung per hari
+        // Kita cari data MASUK dan PULANG
+        const masuks = logs.filter(l => l.type === 'MASUK');
+        totalHadir = masuks.length;
+
+        masuks.forEach(m => {
+            // Hitung Telat
+            const jamMasukUser = new Date(m.timestamp).toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            if (jamMasukUser > jamMasukKantor) {
+                kaliTelat++;
+            }
+        });
+
+        // Hitung Lembur (Dari data SELESAI_LEMBUR jika ada kolom total di attendance)
+        logs.forEach(l => {
+            if (l.type === 'SELESAI_LEMBUR' && l.totalHours) {
+                totalLemburJam += parseFloat(l.totalHours);
+            }
+        });
+
+        const gajiPokok = parseInt(emp.gaji_pokok || 0);
+        const potonganBpjs = parseInt(emp.bpjs || 0);
+        const bonusLembur = totalLemburJam * tarifLembur;
+        const totalDendaTelat = kaliTelat * dendaTelat;
+        
+        const gajiBersih = (gajiPokok + bonusLembur) - (potonganBpjs + totalDendaTelat);
+
+        return {
+            ...emp,
+            totalHadir,
+            totalLemburJam,
+            bonusLembur,
+            totalDendaTelat,
+            gajiBersih
+        };
+    },
+
+    renderTable(data) {
         const tbody = document.getElementById('payroll-table-body');
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Tidak ada data absensi untuk periode ini.</td></tr>';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Tidak ada data karyawan.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = data.map(row => `
+        tbody.innerHTML = data.map(p => `
             <tr>
-                <td>
-                    <div style="font-weight:600; color:var(--text-dark)">${row.nama}</div>
-                    <div style="font-size:0.75rem; color:var(--text-light)">${row.jabatan || 'Karyawan'}</div>
-                </td>
-                <td>Rp ${this.formatIDR(row.gajiPokok)}</td>
-                <td class="text-success" style="font-weight:500">+ Rp ${this.formatIDR(row.bonusLembur)}</td>
-                <td class="text-danger">
-                    - Rp ${this.formatIDR(row.dendaTelat)}
-                    <div style="font-size:0.7rem; color:gray">(${row.totalTelat || 0} mnt telat)</div>
-                </td>
-                <td class="text-danger">- Rp ${this.formatIDR(row.bpjs)}</td>
-                <td style="font-weight:bold; color:#10b981; background:rgba(16, 185, 129, 0.05)">
-                    Rp ${this.formatIDR(row.gajiBersih)}
+                <td style="padding:12px;"><strong>${p.name}</strong><br><small>${p.id}</small></td>
+                <td>Rp ${parseInt(p.gaji_pokok).toLocaleString('id-ID')}</td>
+                <td style="text-align:center;">${p.totalHadir} Hari</td>
+                <td style="text-align:center;">${p.totalLemburJam.toFixed(1)} Jam</td>
+                <td style="color:#10b981; font-weight:600;">+ Rp ${p.bonusLembur.toLocaleString('id-ID')}</td>
+                <td style="color:#ef4444;">- Rp ${p.totalDendaTelat.toLocaleString('id-ID')}</td>
+                <td style="color:#ef4444;">- Rp ${parseInt(p.bpjs).toLocaleString('id-ID')}</td>
+                <td style="background:#f0fdf4; font-weight:700; color:#166534;">Rp ${p.gaji_bersih.toLocaleString('id-ID')}</td>
+                <td style="text-align:center;">
+                    <button onclick="payroll.showSlip('${p.id}')" style="background:#6366f1; color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">
+                        <i class="fas fa-file-invoice"></i> Slip
+                    </button>
                 </td>
             </tr>
         `).join('');
     },
 
-    // Tambahan fungsi jika ingin print laporan (opsional)
-    printReport() {
-        window.print();
+    showSlip(id) {
+        const p = this.employees.find(e => e.id === id); // Ini perlu data hasil kalkulasi, tapi untuk simulasi:
+        alert("Fitur cetak slip untuk " + id + " sedang disiapkan!");
+        // Kamu bisa kembangkan modal-slip di sini
     }
 };
 
-// Pastikan fungsi ini bisa dipanggil secara global
 window.payroll = payroll;
