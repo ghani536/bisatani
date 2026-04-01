@@ -1,7 +1,7 @@
 /**
  * Portal Karyawan - API PT. BISATANI (Full Engine - All Menus Compatible)
  */
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbz_LPi3MSQcqXr295WR0hcsgcH0RWNKDY8mxW1RlLMvOgjwBiWafzyOm-st1P_nZ-HQ/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwOisC-a9LCSU2i_BClXkJMA0HYuKp0NdjFKwPWOssOx_kJmJeHWL5btEVdd-jz75Bh/exec';
 
 const api = {
     // 1. Fungsi POST (Untuk simpan Absen & Admin)
