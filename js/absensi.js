@@ -96,7 +96,7 @@ const absensi = {
         } catch (e) { container.innerHTML = 'Koneksi Error. Refresh Halaman.'; }
     },
 
-    async submit(type) {
+async submit(type) {
         if (!this.location) return alert("Tunggu GPS mengunci lokasi!");
         
         const btn = event.currentTarget;
@@ -105,19 +105,29 @@ const absensi = {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
         try {
-            let statusTelat = "";
-            // Hitung Telat hanya saat MASUK
-            if (type === 'MASUK' && this.settingsCache && this.settingsCache.jam_masuk) {
-                const now = new Date();
-                const [h, m] = this.settingsCache.jam_masuk.split(':');
-                const jadwalMasuk = new Date();
-                jadwalMasuk.setHours(parseInt(h), parseInt(m), 0);
-                
-                if (now > jadwalMasuk) {
-                    const selisih = Math.floor((now - jadwalMasuk) / (1000 * 60));
-                    statusTelat = selisih + " Menit";
-                } else {
-                    statusTelat = "Tepat Waktu";
+            let statusTelat = "0"; // Default jika tidak telat
+            
+            // CEK APAKAH SETTINGS ADA (Biar gak crash)
+            if (type === 'MASUK') {
+                // Jika cache kosong, coba ambil paksa dari API dulu
+                if (!this.settingsCache) {
+                    const resSet = await api.post({ action: 'getSettings' });
+                    if (resSet.success) this.settingsCache = resSet.data;
+                }
+
+                // Hitung Telat hanya jika data jam_masuk ada
+                if (this.settingsCache && this.settingsCache.jam_masuk) {
+                    const now = new Date();
+                    const [h, m] = this.settingsCache.jam_masuk.split(':');
+                    const jadwalMasuk = new Date();
+                    jadwalMasuk.setHours(parseInt(h), parseInt(m), 0);
+                    
+                    if (now > jadwalMasuk) {
+                        const selisih = Math.floor((now - jadwalMasuk) / (1000 * 60));
+                        statusTelat = selisih + " Menit";
+                    } else {
+                        statusTelat = "Tepat Waktu";
+                    }
                 }
             }
 
@@ -128,20 +138,29 @@ const absensi = {
                 type: type,
                 location: this.locationName,
                 image: this.stream ? this.captureImage() : "",
-                statusTelat: statusTelat,
+                statusTelat: statusTelat, // Kolom G
                 lat: this.location.lat,
                 lng: this.location.lng
             };
 
+            console.log("Mengirim data absen:", payload);
             const res = await api.post(payload);
+            
             if (res.success) {
                 alert(`Absen ${type} Berhasil!`);
-                // RE-INITIALIZE UNTUK UPDATE TOMBOL SECARA INSTAN
-                await this.renderButtons();
-            } else { alert("Gagal: " + res.error); }
-        } catch (e) { alert("Koneksi Error"); }
-        finally { btn.disabled = false; btn.innerHTML = originalText; }
-    },
+                // Update tombol tanpa reload
+                await this.renderButtons(); 
+            } else {
+                alert("Gagal simpan ke server: " + (res.error || "Unknown Error"));
+            }
+        } catch (e) {
+            console.error("Crash di Absensi:", e);
+            alert("Terjadi kesalahan sistem. Coba refresh halaman.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    },,
 
     captureImage() {
         const video = document.getElementById('webcam-preview');
