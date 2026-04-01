@@ -1,171 +1,138 @@
 /**
  * Portal Karyawan - Admin Reports PT. BISATANI
- * Fitur: Filter Karyawan, Tanggal, dan Tipe Absensi (FIXED & OTOMATIS)
+ * Menangani tampilan rekap absensi seluruh karyawan
  */
 const adminReports = {
-    attendanceData: [],
-    filters: { 
-        employee: '', 
-        startDate: '', 
-        endDate: '',
-        type: '' 
+    allAttendance: [],
+    employees: [],
+
+    init() {
+        console.log("AdminReports: Inisialisasi...");
+        this.setupFilters();
+        this.loadData();
+        this.bindEvents();
     },
 
-    async init() {
-        console.log("AdminReports: Mengatur periode cut-off 26-25...");
+    setupFilters() {
+        // Set default tanggal hari ini
+        const today = new Date().toISOString().split('T')[0];
+        const startInput = document.getElementById('report-start-date');
+        const endInput = document.getElementById('report-end-date');
         
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth(); 
-        const currentDate = now.getDate();
-
-        let start, end;
-
-        // LOGIKA CUT-OFF 26 s/d 25
-        if (currentDate >= 26) {
-            start = new Date(currentYear, currentMonth, 26, 12, 0, 0);
-            end = new Date(currentYear, currentMonth + 1, 25, 12, 0, 0);
-        } else {
-            start = new Date(currentYear, currentMonth - 1, 26, 12, 0, 0);
-            end = new Date(currentYear, currentMonth, 25, 12, 0, 0);
-        }
-        
-        const startIn = document.getElementById('report-start-date');
-        const endIn = document.getElementById('report-end-date');
-        const typeIn = document.getElementById('report-type-filter');
-        const empIn = document.getElementById('report-employee-filter');
-
-        // Fungsi bantu format tanggal ke YYYY-MM-DD
-        const formatDate = (date) => {
-            const d = new Date(date);
-            let m = '' + (d.getMonth() + 1);
-            let day = '' + d.getDate();
-            if (m.length < 2) m = '0' + m;
-            if (day.length < 2) day = '0' + day;
-            return [d.getFullYear(), m, day].join('-');
-        };
-
-        if (startIn) startIn.value = formatDate(start);
-        if (endIn) endIn.value = formatDate(end);
-
-        this.filters.startDate = startIn ? startIn.value : '';
-        this.filters.endDate = endIn ? endIn.value : '';
-        this.filters.type = typeIn ? typeIn.value : '';
-        this.filters.employee = empIn ? empIn.value : '';
-
-        await this.loadData();
-        this.bindEvents();
+        if (startInput) startInput.value = today;
+        if (endInput) endInput.value = today;
     },
 
     async loadData() {
         const tbody = document.getElementById('attendance-reports-body');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data...</td></tr>';
-        
-        try {
-            const res = await api.post({ action: 'getAllAttendanceData' });
-            if (res.success) {
-                this.attendanceData = res.data || [];
-                this.populateEmployeeFilter();
-                this.renderTable();
-            }
-        } catch (e) { 
-            console.error(e); 
-            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:red;">Gagal memuat data server</td></tr>';
-        }
-    },
+        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data absensi...</td></tr>';
 
-    bindEvents() {
-        // Pantau semua perubahan pada filter (Otomatis tanpa klik cari)
-        const ids = ['report-employee-filter', 'report-start-date', 'report-end-date', 'report-type-filter'];
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                // Menggunakan 'input' agar langsung menyaring saat tanggal/opsi dipilih
-                el.oninput = () => {
-                    this.filters.employee = document.getElementById('report-employee-filter').value;
-                    this.filters.startDate = document.getElementById('report-start-date').value;
-                    this.filters.endDate = document.getElementById('report-end-date').value;
-                    this.filters.type = document.getElementById('report-type-filter').value;
-                    this.renderTable();
-                };
+        try {
+            // Kita panggil getAllAttendanceData (sesuai yang ada di Kode.gs)
+            const [resAtt, resEmp] = await Promise.all([
+                api.post({ action: 'getAllAttendanceData' }),
+                api.post({ action: 'getEmployees' })
+            ]);
+
+            if (resAtt.success) {
+                this.allAttendance = resAtt.data || [];
+                console.log("Data Absensi Berhasil Dimuat:", this.allAttendance.length);
             }
-        });
+
+            if (resEmp.success) {
+                this.employees = resEmp.data || [];
+                this.populateEmployeeFilter();
+            }
+
+            this.renderTable();
+        } catch (e) {
+            console.error("Gagal load reports:", e);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Gagal memuat data.</td></tr>';
+        }
     },
 
     populateEmployeeFilter() {
         const select = document.getElementById('report-employee-filter');
         if (!select) return;
-        const names = [...new Set(this.attendanceData.map(r => r.nama))].filter(Boolean).sort();
-        select.innerHTML = '<option value="">Semua Karyawan</option>' + 
-                          names.map(n => `<option value="${n}">${n}</option>`).join('');
+        
+        // Simpan "Semua" lalu tambah list karyawan
+        select.innerHTML = '<option value="">Semua Karyawan</option>';
+        this.employees.forEach(emp => {
+            select.innerHTML += `<option value="${emp.id}">${emp.name} (${emp.id})</option>`;
+        });
+    },
+
+    bindEvents() {
+        // Filter otomatis saat input berubah
+        const filters = ['report-start-date', 'report-end-date', 'report-type-filter', 'report-employee-filter'];
+        filters.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.onchange = () => this.renderTable();
+        });
+
+        // Tombol Export di menu Rekap
+        const btnExport = document.getElementById('btn-export-attendance');
+        if (btnExport) {
+            btnExport.onclick = () => this.exportToExcel();
+        }
     },
 
     renderTable() {
         const tbody = document.getElementById('attendance-reports-body');
         if (!tbody) return;
 
-        let totalMenit = 0;
-        
-        const filtered = this.attendanceData.filter(row => {
-            // Normalisasi Tanggal (Hanya ambil YYYY-MM-DD)
-            const rowDate = (row.timestamp) ? String(row.timestamp).split('T')[0] : '';
-            
-            // Normalisasi Tipe
-            const rowType = String(row.tipe || '').toUpperCase().trim();
-            const filterType = String(this.filters.type || '').toUpperCase().trim();
+        const start = document.getElementById('report-start-date').value;
+        const end = document.getElementById('report-end-date').value;
+        const type = document.getElementById('report-type-filter').value;
+        const empId = document.getElementById('report-employee-filter').value;
 
-            const matchName = !this.filters.employee || row.nama === this.filters.employee;
-            const matchStart = !this.filters.startDate || rowDate >= this.filters.startDate;
-            const matchEnd = !this.filters.endDate || rowDate <= this.filters.endDate;
-            const matchType = !filterType || rowType === filterType;
-            
-            return matchName && matchStart && matchEnd && matchType;
+        // Logika Filter
+        const filtered = this.allAttendance.filter(log => {
+            const logDate = log.timestamp.split('T')[0];
+            const matchDate = logDate >= start && logDate <= end;
+            const matchType = type === "" || log.type === type;
+            const matchEmp = empId === "" || String(log.userId) === String(empId);
+            return matchDate && matchType && matchEmp;
         });
-
-        // Hitung total jam lembur jika filter karyawan aktif
-        filtered.forEach(row => {
-            if (row.totaljam && row.totaljam !== '-') {
-                const val = parseFloat(row.totaljam);
-                if (!isNaN(val)) totalMenit += val * 60;
-            }
-        });
-
-        // Update Ringkasan Lembur
-        const sumCard = document.getElementById('overtime-summary-card');
-        if (this.filters.employee && sumCard && filtered.length > 0) {
-            sumCard.style.display = 'flex';
-            const jam = Math.floor(totalMenit/60);
-            const menit = Math.round(totalMenit%60);
-            document.getElementById('total-overtime-hours').innerText = `${jam} Jam ${menit} Menit`;
-        } else if (sumCard) {
-            sumCard.style.display = 'none';
-        }
-
-        const formatJam = (v) => {
-            if (!v || v === '-') return '-';
-            return String(v).includes('T') ? String(v).split('T')[1].substring(0, 5) : String(v).substring(0, 5);
-        };
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">Tidak ada data yang cocok</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">Tidak ada data untuk filter ini.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = filtered.map((row, index) => {
-            const d = row.timestamp ? new Date(row.timestamp) : null;
-            return `<tr>
-                <td style="text-align:center;">${index + 1}</td>
-                <td>${d ? d.toLocaleDateString('id-ID') : '-'}<br><small>${d ? d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</small></td>
-                <td><strong>${row.nama || '-'}</strong></td>
-                <td><span style="padding:4px 8px; border-radius:12px; font-size:10px; background:#eee; font-weight:bold;">${String(row.tipe).toUpperCase().replace('_', ' ')}</span></td>
-                <td style="font-size:10px;">${row.lokasi || '-'}</td>
-                <td style="text-align:center;">${row.foto ? `<img src="${row.foto}" style="width:30px;height:30px;object-fit:cover;border-radius:4px;" onclick="window.open('${row.foto}')">` : '-'}</td>
-                <td><small>${row.statustelat || '-'}</small></td>
-                <td style="text-align:center;">${formatJam(row.mulailembur)}</td>
-                <td style="text-align:center;">${formatJam(row.selesailembur)}</td>
-                <td style="text-align:center; background:#fffbeb; font-weight:bold;">${row.totaljam || '-'}</td>
-            </tr>`;
+        tbody.innerHTML = filtered.map((log, index) => {
+            const d = new Date(log.timestamp);
+            const waktu = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${waktu}</td>
+                    <td><strong>${log.userName || log.userId}</strong></td>
+                    <td><span class="badge-${log.type.toLowerCase()}">${log.type}</span></td>
+                    <td><small>${log.location || '-'}</small></td>
+                    <td>${log.image ? `<img src="${log.image}" style="width:40px; height:40px; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">` : '-'}</td>
+                    <td>${log.note || '-'}</td>
+                    <td>${log.startTime || '-'}</td>
+                    <td>${log.endTime || '-'}</td>
+                    <td style="background:#fffbeb; font-weight:bold;">${log.totalHours ? log.totalHours + ' j' : '-'}</td>
+                </tr>
+            `;
         }).join('');
+    },
+
+    exportToExcel() {
+        // Logika export sederhana untuk rekap absensi
+        let csv = "Waktu;Nama;Tipe;Lokasi;Catatan;Mulai;Selesai;Total Jam\n";
+        this.allAttendance.forEach(log => {
+            csv += `${log.timestamp};${log.userName};${log.type};${log.location};${log.note};${log.startTime || ''};${log.endTime || ''};${log.totalHours || ''}\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Rekap_Absensi_Bisatani_${new Date().toLocaleDateString()}.csv`;
+        link.click();
     }
 };
 
