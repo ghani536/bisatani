@@ -1,40 +1,40 @@
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyJUquvyHg7j1xjSFer-_b4ZK_iTiOn-dPFBsLHcoN5MPGJnToUuV91X6oMRTwYOB8q/exec';
-
 const api = {
-    async post(data) {
+    BASE_URL: 'https://script.google.com/macros/s/AKfycbxOCGDeAjT10Y4ehXTFDRA8i0zyXHgzwIqnF71u6bRt0ahqNsoyryF1_g8LHndxc0pS/exec',
+
+    async call(data) {
         try {
-            const response = await fetch(API_BASE_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Biar nggak kena blokir CORS Google
-                body: JSON.stringify(data)
+            // Kita pakai GET untuk ambil data, dan POST untuk simpan data
+            // Tapi untuk amannya, kita buat URL parameters untuk semua action
+            const params = new URLSearchParams({ action: data.action });
+            if (data.action === 'login') {
+                params.append('email', data.email);
+                params.append('password', data.password);
+            } else if (data.userId) {
+                params.append('userId', data.userId);
+            }
+
+            const response = await fetch(`${this.BASE_URL}?${params.toString()}`, {
+                method: data.method || 'POST',
+                body: data.method === 'GET' ? null : JSON.stringify(data),
+                mode: 'cors'
             });
-            // Karena no-cors, kita tidak bisa baca response.json()
-            // Tapi data PASTI MASUK ke Google Sheets.
-            return { success: true }; 
+            return await response.json();
         } catch (error) {
             console.error('API Error:', error);
-            return { success: false };
+            return { success: false, error: 'Koneksi ke server gagal' };
         }
     },
 
-    // Login khusus pakai fetch biasa agar bisa baca data User
     async login(email, password) {
-        try {
-            const res = await fetch(`${API_BASE_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-            return await res.json();
-        } catch (err) {
-            return { success: false, error: 'Koneksi Server Gagal' };
-        }
+        return await this.call({ action: 'login', email, password, method: 'GET' });
     },
 
-    // Fungsi bantu untuk ambil data (Status, Settings, Employees)
+    async post(data) {
+        return await this.call({ ...data, method: 'POST' });
+    },
+
     async get(action, params = {}) {
-        try {
-            let url = `${API_BASE_URL}?action=${action}`;
-            for (let key in params) { url += `&${key}=${encodeURIComponent(params[key])}`; }
-            const res = await fetch(url);
-            return await res.json();
-        } catch (err) { return { success: false }; }
+        return await this.call({ action, ...params, method: 'GET' });
     }
 };
 window.api = api;
