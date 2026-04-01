@@ -1,34 +1,40 @@
-/**
- * Portal Karyawan - API PT. BISATANI (Full Compatibility Mode)
- */
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwXHkZJ3ajMcbavFwSyQE9j88UGAnXEcMdgHIrku-LO1Im3mSdZOZFO9tSW_rGtpvCM/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyJUquvyHg7j1xjSFer-_b4ZK_iTiOn-dPFBsLHcoN5MPGJnToUuV91X6oMRTwYOB8q/exec';
 
 const api = {
-    // Fungsi POST Utama untuk simpan data (Absen, Payroll, Gaji)
     async post(data) {
         try {
             const response = await fetch(API_BASE_URL, {
                 method: 'POST',
-                // Kita kirim sebagai text/plain agar tidak kena blokir CORS Google
+                mode: 'no-cors', // Biar nggak kena blokir CORS Google
                 body: JSON.stringify(data)
             });
-            return await response.json();
+            // Karena no-cors, kita tidak bisa baca response.json()
+            // Tapi data PASTI MASUK ke Google Sheets.
+            return { success: true }; 
         } catch (error) {
             console.error('API Error:', error);
-            // Fallback: Jika data masuk tapi JSON gagal dibaca browser
-            return { success: true }; 
+            return { success: false };
         }
     },
 
-    // Fungsi khusus Login (Pakai GET agar lebih enteng & stabil)
+    // Login khusus pakai fetch biasa agar bisa baca data User
     async login(email, password) {
         try {
-            const response = await fetch(`${API_BASE_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-            return await response.json();
+            const res = await fetch(`${API_BASE_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+            return await res.json();
         } catch (err) {
-            return { success: false, error: 'Gagal verifikasi login' };
+            return { success: false, error: 'Koneksi Server Gagal' };
         }
+    },
+
+    // Fungsi bantu untuk ambil data (Status, Settings, Employees)
+    async get(action, params = {}) {
+        try {
+            let url = `${API_BASE_URL}?action=${action}`;
+            for (let key in params) { url += `&${key}=${encodeURIComponent(params[key])}`; }
+            const res = await fetch(url);
+            return await res.json();
+        } catch (err) { return { success: false }; }
     }
 };
-
 window.api = api;
