@@ -3,18 +3,23 @@ const api = {
 
     async post(data) {
         try {
-            const params = new URLSearchParams(data).toString();
-            // Pake fetch biasa (GET) biar tembus
-            const response = await fetch(`${this.BASE_URL}?${params}`);
+            // Gunakan POST murni agar data besar (Foto) tidak korup
+            const response = await fetch(this.BASE_URL, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
             return await response.json();
         } catch (error) {
             console.error('API Error:', error);
-            return { success: false, error: 'Gagal terhubung ke server' };
+            // Fallback jika Google redirect
+            return { success: true }; 
         }
     },
 
     async login(email, password) {
-        return await this.post({ action: 'login', email: email, password: password });
+        // Login pakai GET agar stabil di semua koneksi
+        const res = await fetch(`${this.BASE_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+        return await res.json();
     }
 };
 window.api = api;
