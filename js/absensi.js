@@ -1,6 +1,5 @@
 /**
  * Portal Karyawan - Absensi Engine PT. BISATANI
- * Versi Final Fix: Tombol Lembur & Hitungan Telat
  */
 const absensi = {
     stream: null,
@@ -9,7 +8,6 @@ const absensi = {
     settingsCache: null,
 
     async init() {
-        console.log("Absensi: Memulai Jalur Cepat...");
         this.startCamera();
         this.getLocation();
         await this.renderButtons();
@@ -39,7 +37,7 @@ const absensi = {
                 locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.locationName}`;
             },
             (err) => { locText.innerHTML = '<i class="fas fa-times-circle"></i> GPS Off'; },
-            { enableHighAccuracy: false, timeout: 5000 }
+            { enableHighAccuracy: false, timeout: 8000 } // Tambah timeout biar gak gampang error
         );
     },
 
@@ -58,13 +56,13 @@ const absensi = {
         container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkron...</div>';
 
         try {
-            // Gunakan api.get agar tidak membebani server (Pastikan api.js sudah ada fungsi get)
+            // Ambil Status & Settings secara bergantian agar server tidak overload
             const statusRes = await api.get('getAttendanceStatus', { userId: auth.user.id });
             const settingsRes = await api.get('getSettings');
 
-            if (settingsRes.success) this.settingsCache = settingsRes.data;
+            if (settingsRes && settingsRes.success) this.settingsCache = settingsRes.data;
 
-            const lastType = (statusRes.success && statusRes.data) ? statusRes.data.type : null;
+            const lastType = (statusRes && statusRes.success && statusRes.data) ? statusRes.data.type : null;
             const config = this.settingsCache || {};
             
             const now = new Date();
@@ -72,7 +70,6 @@ const absensi = {
             
             let html = '';
 
-            // LOGIKA TOMBOL BERDASARKAN STATUS TERAKHIR
             if (lastType === 'MASUK') {
                 html = `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
             } 
@@ -80,10 +77,9 @@ const absensi = {
                 html = `<button onclick="absensi.submit('SELESAI_LEMBUR')" class="btn-selesai-lembur" style="background:#0ea5e9; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-check-double"></i> SELESAI LEMBUR</button>`;
             } 
             else {
-                // Default: Tombol MASUK
                 html = `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; margin-bottom:10px; cursor:pointer;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
                 
-                // Jika sudah PULANG, cek apakah boleh MULAI LEMBUR
+                // Logika Lembur: Muncul jika status terakhir PULANG dan sudah jamnya
                 if (lastType === 'PULANG' && config.jam_lembur_min) {
                     if (jamNow >= config.jam_lembur_min) {
                         html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
@@ -94,7 +90,7 @@ const absensi = {
             }
             container.innerHTML = html;
         } catch (e) { 
-            console.error(e);
+            console.error("Render Error:", e);
             container.innerHTML = '<button onclick="location.reload()" class="btn-masuk" style="background:#64748b; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold;">REFRESH STATUS</button>'; 
         }
     },
@@ -109,20 +105,15 @@ const absensi = {
 
         try {
             let statusTelat = "";
-            
-            // Hitung Telat hanya untuk MASUK
             if (type === 'MASUK' && this.settingsCache && this.settingsCache.jam_masuk) {
                 const now = new Date();
                 const [h, m] = this.settingsCache.jam_masuk.split(':');
                 const jadwal = new Date();
                 jadwal.setHours(parseInt(h), parseInt(m), 0);
-                
                 if (now > jadwal) {
                     const selisih = Math.floor((now - jadwal) / 60000);
                     statusTelat = selisih + " Menit";
-                } else {
-                    statusTelat = "Tepat Waktu";
-                }
+                } else { statusTelat = "Tepat Waktu"; }
             }
 
             const payload = {
@@ -137,18 +128,12 @@ const absensi = {
                 lng: this.location.lng
             };
 
-            const res = await api.post(payload);
-            
-            // Karena kita pakai 'no-cors' di api.post, res.success mungkin tidak terbaca.
-            // Kita asumsikan berhasil jika tidak masuk ke catch error.
+            await api.post(payload);
             alert(`Absen ${type} Berhasil!`);
-            
-            // Refresh total agar state aplikasi bersih dan tombol terupdate
-            location.reload();
+            location.reload(); 
 
         } catch (e) {
-            console.error(e);
-            alert("Terjadi gangguan jaringan, silakan coba lagi.");
+            alert("Terjadi kesalahan jaringan.");
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -161,8 +146,7 @@ const absensi = {
         const canvas = document.createElement('canvas');
         canvas.width = 320;
         canvas.height = 240;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
         return canvas.toDataURL('image/jpeg', 0.5);
     }
 };
