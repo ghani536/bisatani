@@ -1,7 +1,7 @@
 /**
  * Portal Karyawan - API PT. BISATANI (Full Engine - All Menus Compatible)
  */
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxv_lTpRd1XLhPqMIQgtGUSy1J2JVyc5hAAN9hnJYMbrW8nU-zX4P6baYKBmU6vWAJl/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbz_LPi3MSQcqXr295WR0hcsgcH0RWNKDY8mxW1RlLMvOgjwBiWafzyOm-st1P_nZ-HQ/exec';
 
 const api = {
     // 1. Fungsi Utama untuk Simpan Data (Absen, Tambah Karyawan, Simpan Gaji)
