@@ -12,7 +12,6 @@ const router = {
         const menuItems = document.querySelectorAll('[data-page]');
         
         menuItems.forEach(item => {
-            // Hapus event listener lama agar tidak double
             item.onclick = (e) => {
                 const page = item.getAttribute('data-page');
                 if (page) {
@@ -22,22 +21,19 @@ const router = {
             };
         });
 
-        // Cek jika ada sesi tersimpan atau sedang login
-        // Gunakan localStorage langsung jika 'storage' object tidak ditemukan
+        // Cek sesi login
         const savedPage = localStorage.getItem('currentPage') || 'dashboard';
-        
         if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
             this.navigate(savedPage);
         }
     },
 
     navigate(page) {
-        // Cek Login (Pastikan object auth ada)
         if (typeof auth !== 'undefined' && !auth.isLoggedIn()) return;
 
         console.log("Router: Berpindah ke ->", page);
 
-        // 1. Update UI Active Class di Sidebar & Bottom Nav
+        // 1. Update UI Active Class
         document.querySelectorAll('[data-page]').forEach(item => {
             item.classList.remove('active');
             if (item.getAttribute('data-page') === page) {
@@ -45,25 +41,23 @@ const router = {
             }
         });
 
-        // 2. Switch Halaman (Sembunyikan semua, munculkan satu)
+        // 2. Switch Halaman
         const allPages = document.querySelectorAll('.page');
         allPages.forEach(p => {
             p.classList.remove('active');
-            p.style.display = 'none'; // Paksa sembunyi
+            p.style.display = 'none';
         });
 
         const target = document.getElementById(`page-${page}`);
         if (target) {
             target.classList.add('active');
-            target.style.display = 'block'; // Paksa muncul
+            target.style.display = 'block';
             
             this.currentPage = page;
             localStorage.setItem('currentPage', page);
             
-            // Update Title di Header
             const titleEl = document.getElementById('page-title');
             if (titleEl) {
-                // Ubah 'payroll-reports' jadi 'PAYROLL REPORTS'
                 titleEl.textContent = page.replace(/-/g, ' ').toUpperCase();
             }
             
@@ -76,35 +70,32 @@ const router = {
 
     triggerPageInit(page) {
         try {
-            console.log("Router: Menjalankan init untuk script ->", page);
-
             // Mapping halaman ke script yang sesuai
             switch (page) {
                 case 'admin-dashboard':
                     if (window.adminDashboard) adminDashboard.init();
                     break;
                 case 'dashboard':
+                    // Jika kamu punya dashboard.js, panggil di sini
                     if (window.dashboard) window.dashboard.init();
                     break;
                 case 'absensi':
-                    if (window.absensi) window.absensi.init();
-                    break;
-                case 'employees':
-                    if (window.adminEmployees) window.adminEmployees.init();
-                    break;
-                case 'attendance-reports':
-                    // PASTIKAN NAMA OBJECTNYA adminReports
-                    if (window.adminReports) {
-                        window.adminReports.init();
-                    } else {
-                        console.warn("Router: Script adminReports belum ter-load!");
+                    if (window.absensi) {
+                        console.log("Router: Menyalakan mesin absensi...");
+                        absensi.init(); // Memanggil versi Turbo yang baru kita buat
                     }
                     break;
+                case 'employees':
+                    if (window.adminEmployees) adminEmployees.init();
+                    break;
+                case 'attendance-reports':
+                    if (window.adminReports) adminReports.init();
+                    break;
                 case 'payroll-reports':
-                    if (window.payroll) window.payroll.init();
+                    if (window.payroll) payroll.init();
                     break;
                 case 'settings':
-                    if (window.settings) window.settings.init();
+                    if (window.settings) settings.init();
                     break;
             }
         } catch (e) {
@@ -113,9 +104,7 @@ const router = {
     }
 };
 
-// Jalankan router saat halaman siap
 document.addEventListener('DOMContentLoaded', () => {
-    // Beri jeda sedikit agar script lain (api.js, auth.js) siap dulu
     setTimeout(() => {
         router.init();
     }, 300);
