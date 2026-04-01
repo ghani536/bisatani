@@ -76,7 +76,7 @@
         .filter-row {
             display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc;
             padding: 15px; border-radius: 10px; margin-bottom: 15px;
-            align-items: flex-end; border: 1px solid #e2e880;
+            align-items: flex-end; border: 1px solid #e2e8f0;
         }
         .filter-item { display: flex; flex-direction: column; gap: 5px; }
         .filter-item label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
@@ -236,13 +236,29 @@
                         <div class="filter-row">
                             <div class="filter-item"><label>Dari</label><input type="date" id="report-start-date"></div>
                             <div class="filter-item"><label>Sampai</label><input type="date" id="report-end-date"></div>
+                            <div class="filter-item">
+                                <label>Tipe</label>
+                                <select id="report-type-filter">
+                                    <option value="">Semua Tipe</option>
+                                    <option value="MASUK">MASUK</option>
+                                    <option value="PULANG">PULANG</option>
+                                    <option value="MULAI_LEMBUR">MULAI LEMBUR</option>
+                                    <option value="SELESAI_LEMBUR">SELESAI LEMBUR</option>
+                                </select>
+                            </div>
+                            <div class="filter-item">
+                                <label>Karyawan</label>
+                                <select id="report-employee-filter">
+                                    <option value="">Semua Karyawan</option>
+                                </select>
+                            </div>
                             <div class="filter-item"><label>Cari Nama/ID</label><input type="text" id="report-search" placeholder="Cari..."></div>
-                            <button onclick="adminReports.loadData()" class="btn-primary" style="background: #10b981;"><i class="fas fa-search"></i> Filter</button>
+                            <button onclick="adminReports.renderTable()" class="btn-primary" style="background: #10b981;"><i class="fas fa-search"></i> Filter</button>
                         </div>
                         <div class="table-responsive">
-                            <table class="reports-table" style="width: 100%; font-size: 12px;">
+                            <table class="reports-table" style="width: 100%; font-size: 11px;">
                                 <thead style="background: #f8fafc;">
-                                    <tr><th>No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Catatan</th><th>Total Jam</th></tr>
+                                    <tr><th>No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Catatan</th><th>Mulai</th><th>Selesai</th><th>Total Jam</th></tr>
                                 </thead>
                                 <tbody id="attendance-reports-body"></tbody>
                             </table>
