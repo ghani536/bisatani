@@ -2,7 +2,7 @@
  * PT. BISATANI - API Multi-Channel (Universal Version)
  * Manjur untuk: Absensi Foto, Payroll, Data Karyawan, & Settings
  */
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwWKkl5L_e-Njh3hcUQnUBtz982_BdCkJypV7DZN3ihhSFAahuwqPjv69kkY1WjqYsD/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyQpToYqfWZ9npiHkWOKnOpD34IjWGIUlctZgIA0GhVNtHwJo0Utg_i-A8O-JuwnMpL/exec';
 
 const api = {
     // FUNGSI POST: Dipakai Payroll & Admin untuk kirim/terima data JSON
