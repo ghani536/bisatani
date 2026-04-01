@@ -35,7 +35,7 @@
             left: 0;
             right: 0;
             background: #fff;
-            display: none; /* Default sembunyi di Desktop */
+            display: none;
             grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             padding: 8px 0;
@@ -61,11 +61,10 @@
 
         @media (max-width: 768px) {
             .mobile-bottom-nav { display: grid; }
-            .main-content { padding-bottom: 70px !important; } /* Spasi agar konten gak ketutup menu */
-            .sidebar { display: none; } /* Sembunyikan sidebar di mobile */
+            .main-content { padding-bottom: 70px !important; }
+            .sidebar { display: none; }
         }
 
-        /* Media Print untuk Slip Gaji */
         @media print {
             body * { visibility: hidden; }
             #modal-slip, #modal-slip * { visibility: visible; }
@@ -74,7 +73,6 @@
             .modal-content { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; }
         }
 
-        /* Filter & Table Styles */
         .filter-row {
             display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc;
             padding: 15px; border-radius: 10px; margin-bottom: 15px;
@@ -229,11 +227,36 @@
 
                 <div class="page" id="page-payroll-reports">
                     <div class="payroll-container" style="padding: 20px; background: #fff; border-radius: 12px;">
-                        <div class="payroll-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="payroll-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                             <h3 style="margin: 0;"><i class="fas fa-wallet"></i> Payroll (26 - 25)</h3>
-                            <button class="btn-primary" onclick="payroll.calculate()" style="background: #10b981; border:none; padding: 8px 15px; border-radius: 8px; color:white;"><i class="fas fa-calculator"></i> Hitung</button>
+                            
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <select id="payroll-month" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                                    <option value="0">Januari</option><option value="1">Februari</option>
+                                    <option value="2">Maret</option><option value="3" selected>April</option>
+                                    <option value="4">Mei</option><option value="5">Juni</option>
+                                    <option value="6">Juli</option><option value="7">Agustus</option>
+                                    <option value="8">September</option><option value="9">Oktober</option>
+                                    <option value="10">November</option><option value="11">Desember</option>
+                                </select>
+                                <input type="number" id="payroll-year" value="2026" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; width: 80px;">
+                                <button class="btn-primary" onclick="payroll.calculate()" style="background: #10b981; border:none; padding: 8px 15px; border-radius: 8px; color:white; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-calculator"></i> Hitung
+                                </button>
+                            </div>
                         </div>
-                        <div class="table-responsive"><table class="reports-table" style="width: 100%;"><thead style="background: #f8fafc;"><tr><th>Karyawan</th><th>Gapok</th><th>Hadir</th><th>Lembur</th><th>Bonus</th><th>Telat</th><th>BPJS</th><th style="background:#f0fdf4;">Gaji Bersih</th><th>Aksi</th></tr></thead><tbody id="payroll-table-body"></tbody></table></div>
+                        <div class="table-responsive">
+                            <table class="reports-table" style="width: 100%;">
+                                <thead style="background: #f8fafc;">
+                                    <tr>
+                                        <th>Karyawan</th><th>Gapok</th><th>Hadir</th><th>Lembur</th><th>Bonus</th><th>Telat</th><th>BPJS</th><th style="background:#f0fdf4;">Gaji Bersih</th><th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payroll-table-body">
+                                    <tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8;">Silakan klik tombol Hitung</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -251,50 +274,45 @@
                 </div>
 
                 <div class="page" id="page-admin-dashboard">
-                    <div class="dashboard-stats-grid">
-                        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #6366f1;">
+                    <div class="dashboard-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #6366f1; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                             <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Karyawan</span>
                             <h2 id="dash-total-emp" style="margin: 10px 0 0; font-size: 32px;">0</h2>
                         </div>
-                        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #10b981;">
+                        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                             <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Hadir Hari Ini</span>
                             <h2 id="dash-total-presence" style="margin: 10px 0 0; font-size: 32px;">0</h2>
                         </div>
                     </div>
-                    <div class="dashboard-lower" style="margin-top:20px; background:#fff; padding:20px; border-radius:12px;">
-                        <h4><i class="fas fa-history"></i> Log Aktivitas</h4>
-                        <div id="dash-recent-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                    <div class="dashboard-lower" style="margin-top:20px; background:#fff; padding:20px; border-radius:12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                        <h4><i class="fas fa-history"></i> Log Aktivitas Terbaru</h4>
+                        <div id="dash-recent-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
                     </div>
                 </div>
             </div>
         </main>
 
         <nav class="mobile-bottom-nav no-print">
-            <div class="nav-item-mobile active" data-page="dashboard">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
-            </div>
-            <div class="nav-item-mobile" data-page="absensi">
-                <i class="fas fa-clock"></i>
-                <span>Absen</span>
-            </div>
-            <div class="nav-item-mobile admin-only hidden" data-page="admin-dashboard">
-                <i class="fas fa-chart-line"></i>
-                <span>Admin</span>
-            </div>
-            <div class="nav-item-mobile admin-only hidden" data-page="settings">
-                <i class="fas fa-cog"></i>
-                <span>Set</span>
-            </div>
-            <div class="nav-item-mobile" onclick="auth.handleLogout()">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Out</span>
-            </div>
+            <div class="nav-item-mobile active" data-page="dashboard"><i class="fas fa-home"></i><span>Home</span></div>
+            <div class="nav-item-mobile" data-page="absensi"><i class="fas fa-clock"></i><span>Absen</span></div>
+            <div class="nav-item-mobile admin-only hidden" data-page="admin-dashboard"><i class="fas fa-chart-line"></i><span>Admin</span></div>
+            <div class="nav-item-mobile admin-only hidden" data-page="settings"><i class="fas fa-cog"></i><span>Set</span></div>
+            <div class="nav-item-mobile" onclick="auth.handleLogout()"><i class="fas fa-sign-out-alt"></i><span>Out</span></div>
         </nav>
     </div>
 
-    <div id="modal-slip" class="modal-custom"> ... </div>
-    <div id="modal-employee" class="modal-custom"> ... </div>
+    <div id="modal-slip" class="modal-custom">
+        <div class="modal-content" style="background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; position: relative;">
+            <button onclick="document.getElementById('modal-slip').style.display='none'" style="position: absolute; right: 15px; top: 15px; border: none; background: none; font-size: 20px; cursor: pointer;" class="no-print">&times;</button>
+            <div id="slip-content"></div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;" class="no-print">
+                <button onclick="window.print()" style="flex: 1; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer;"><i class="fas fa-print"></i> Cetak</button>
+                <button onclick="document.getElementById('modal-slip').style.display='none'" style="flex: 1; padding: 10px; background: #e2e8f0; border: none; border-radius: 8px; cursor: pointer;">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-employee" class="modal-custom"></div>
 
     <script src="js/api.js"></script>
     <script src="js/main.js"></script>
@@ -308,13 +326,10 @@
     <script src="js/admin-dashboard.js"></script>
 
     <script>
-        // Supaya item mobile nav bisa diklik lewat router
         document.querySelectorAll('.nav-item-mobile[data-page]').forEach(item => {
             item.addEventListener('click', () => {
                 const page = item.getAttribute('data-page');
                 if (window.router) router.navigate(page);
-                
-                // Set active class
                 document.querySelectorAll('.nav-item-mobile').forEach(i => i.classList.remove('active'));
                 item.classList.add('active');
             });
