@@ -28,7 +28,6 @@
         .page { display: none; }
         .page.active { display: block; }
 
-        /* Style khusus untuk Print Slip */
         @media print {
             body * { visibility: hidden; }
             #modal-slip, #modal-slip * { visibility: visible; }
@@ -54,6 +53,12 @@
             width: 100%; height: 100%; background: rgba(0,0,0,0.6);
             align-items: center; justify-content: center;
         }
+
+        /* Badge Status */
+        .badge-masuk { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-pulang { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-mulai_lembur { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-selesai_lembur { background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
     </style>
 </head>
 
@@ -142,8 +147,22 @@
 
             <div class="page-content" id="page-content">
                 <div class="page active" id="page-dashboard"><div class="welcome-card"><h2>Halo, <span id="welcome-name">Karyawan</span>! 👋</h2><p>Selamat bekerja di PT. Bisatani.</p></div></div>
-                <div class="page" id="page-absensi"><div class="absensi-container"><div class="absensi-header"><div class="live-clock" id="live-clock">00:00:00</div><div class="camera-box" style="margin: 15px auto; width: 280px; height: 210px; background: #000; border-radius: 12px; overflow: hidden; border: 3px solid #10b981; position: relative;"><video id="webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video></div><p id="location-text" style="font-size: 0.85rem; color: #10b981;"><i class="fas fa-map-marker-alt"></i> Mencari lokasi...</p></div><div class="attendance-buttons" id="attendance-btns"><div style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Data...</div></div></div></div>
                 
+                <div class="page" id="page-absensi">
+                    <div class="absensi-container">
+                        <div class="absensi-header">
+                            <div class="live-clock" id="live-clock">00:00:00</div>
+                            <div class="camera-box" style="margin: 15px auto; width: 280px; height: 210px; background: #000; border-radius: 12px; overflow: hidden; border: 3px solid #10b981; position: relative;">
+                                <video id="webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                            </div>
+                            <p id="location-text" style="font-size: 0.85rem; color: #10b981;"><i class="fas fa-map-marker-alt"></i> Mencari lokasi...</p>
+                        </div>
+                        <div class="attendance-buttons" id="attendance-btns">
+                            <div style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Data...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="page" id="page-employees">
                     <div class="employees-container" style="padding: 20px; background: #fff; border-radius: 12px;">
                         <div class="employees-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -151,6 +170,49 @@
                             <button class="btn-primary" id="btn-add-employee" style="background: #10b981; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;"><i class="fas fa-plus"></i> Tambah</button>
                         </div>
                         <div class="table-responsive"><table class="reports-table" style="width: 100%;"><thead style="background: #f8fafc;"><tr><th style="padding: 12px;">No</th><th>Nama / ID</th><th>Email</th><th>Dept</th><th>Jabatan</th><th>Gaji Pokok</th><th style="text-align: center;">Aksi</th></tr></thead><tbody id="employees-table-body"></tbody></table></div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-attendance-reports">
+                    <div class="reports-container" style="padding: 20px; background: #fff; border-radius: 12px;">
+                        <div class="reports-header" style="margin-bottom: 20px;"><h3><i class="fas fa-file-invoice"></i> Rekap Absensi Karyawan</h3></div>
+                        
+                        <div class="filter-row">
+                            <div class="filter-item"><label>Dari</label><input type="date" id="report-start-date"></div>
+                            <div class="filter-item"><label>Sampai</label><input type="date" id="report-end-date"></div>
+                            <div class="filter-item">
+                                <label>Tipe</label>
+                                <select id="report-type-filter">
+                                    <option value="">Semua Tipe</option>
+                                    <option value="MASUK">MASUK</option>
+                                    <option value="PULANG">PULANG</option>
+                                    <option value="MULAI_LEMBUR">MULAI LEMBUR</option>
+                                    <option value="SELESAI_LEMBUR">SELESAI LEMBUR</option>
+                                </select>
+                            </div>
+                            <div class="filter-item" style="flex:1"><label>Karyawan</label><select id="report-employee-filter"><option value="">Semua</option></select></div>
+                            <button id="btn-export-attendance" class="btn-primary" style="height:38px; background: #1e293b;"><i class="fas fa-file-excel"></i> Export CSV</button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="reports-table" style="width: 100%; font-size: 12px;">
+                                <thead style="background: #f8fafc;">
+                                    <tr>
+                                        <th style="padding: 10px;">No</th>
+                                        <th>Waktu</th>
+                                        <th>Nama</th>
+                                        <th>Tipe</th>
+                                        <th>Lokasi</th>
+                                        <th>Foto</th>
+                                        <th>Catatan</th>
+                                        <th>Total Jam</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-reports-body">
+                                    <tr><td colspan="8" style="text-align:center; padding:20px;">Memuat data absensi...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -169,14 +231,19 @@
                     </div>
                 </div>
 
-                <div class="page" id="page-settings"><div class="welcome-card"><h2>Settings</h2><p>Gunakan menu ini untuk mengatur jam kerja dan tarif gaji.</p></div></div>
-                <div class="page" id="page-attendance-reports"><div class="welcome-card"><h2>Rekap Absensi</h2><p>Lihat riwayat kehadiran harian karyawan.</p></div></div>
+                <div class="page" id="page-settings">
+                    <div class="settings-container" style="padding: 20px; background: #fff; border-radius: 12px;">
+                        <h3><i class="fas fa-cog"></i> Pengaturan Gaji & Jam Kerja</h3>
+                        <p style="color: #64748b; font-size: 13px;">Silakan atur parameter denda dan lembur di sini.</p>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                        </div>
+                </div>
             </div>
         </main>
     </div>
 
     <div id="modal-slip" class="modal-custom">
-        <div class="modal-content" style="background: #fff; padding: 30px; border-radius: 15px; width: 95%; max-width: 400px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div class="modal-content" style="background: #fff; padding: 30px; border-radius: 15px; width: 95%; max-width: 400px; position: relative;">
             <div id="slip-content"></div>
             <div class="no-print" style="margin-top: 25px; display: flex; gap: 10px;">
                 <button onclick="window.print()" style="flex: 1; background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;"><i class="fas fa-print"></i> Cetak / PDF</button>
