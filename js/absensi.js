@@ -1,5 +1,5 @@
 /**
- * Portal Karyawan - Absensi Engine PT. BISATANI
+ * Portal Karyawan - Absensi Engine PT. BISATANI (Final Fix)
  */
 const absensi = {
     stream: null,
@@ -37,7 +37,7 @@ const absensi = {
                 locText.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${this.locationName}`;
             },
             (err) => { locText.innerHTML = '<i class="fas fa-times-circle"></i> GPS Off'; },
-            { enableHighAccuracy: false, timeout: 8000 } // Tambah timeout biar gak gampang error
+            { enableHighAccuracy: false, timeout: 8000 }
         );
     },
 
@@ -56,7 +56,6 @@ const absensi = {
         container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkron...</div>';
 
         try {
-            // Ambil Status & Settings secara bergantian agar server tidak overload
             const statusRes = await api.get('getAttendanceStatus', { userId: auth.user.id });
             const settingsRes = await api.get('getSettings');
 
@@ -64,7 +63,6 @@ const absensi = {
 
             const lastType = (statusRes && statusRes.success && statusRes.data) ? statusRes.data.type : null;
             const config = this.settingsCache || {};
-            
             const now = new Date();
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
             
@@ -79,7 +77,6 @@ const absensi = {
             else {
                 html = `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; margin-bottom:10px; cursor:pointer;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
                 
-                // Logika Lembur: Muncul jika status terakhir PULANG dan sudah jamnya
                 if (lastType === 'PULANG' && config.jam_lembur_min) {
                     if (jamNow >= config.jam_lembur_min) {
                         html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
@@ -95,7 +92,7 @@ const absensi = {
         }
     },
 
-async submit(type) {
+    async submit(type) {
         if (!this.location) return alert("Tunggu GPS stabil!");
         const btn = event.currentTarget;
         const originalText = btn.innerHTML;
@@ -103,8 +100,22 @@ async submit(type) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
         try {
-            // ... (Logika hitung telat Bos tetap sama) ...
-            
+            // --- LOGIKA HITUNG TELAT (FIXED) ---
+            let statusTelat = "";
+            if (type === 'MASUK' && this.settingsCache && this.settingsCache.jam_masuk) {
+                const now = new Date();
+                const [h, m] = this.settingsCache.jam_masuk.split(':');
+                const jadwal = new Date();
+                jadwal.setHours(parseInt(h), parseInt(m), 0);
+                
+                if (now > jadwal) {
+                    const selisih = Math.floor((now - jadwal) / 60000);
+                    statusTelat = selisih + " Menit";
+                } else {
+                    statusTelat = "Tepat Waktu";
+                }
+            }
+
             const payload = {
                 action: 'saveAttendance',
                 userId: auth.user.id,
@@ -112,18 +123,18 @@ async submit(type) {
                 type: type,
                 location: this.locationName,
                 image: this.captureImage(),
-                statusTelat: telat, // Sesuaikan variabel telat Bos
+                statusTelat: statusTelat, // Sekarang sudah ada isinya
                 lat: this.location.lat,
                 lng: this.location.lng
             };
 
             await api.post(payload);
             
-            // LANGSUNG ALERT & RELOAD (Jangan nunggu response server)
             alert(`Absen ${type} Berhasil dikirim!`);
             location.reload(); 
 
         } catch (e) {
+            console.error("Submit Error:", e);
             alert("Terjadi gangguan jaringan.");
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -136,7 +147,8 @@ async submit(type) {
         const canvas = document.createElement('canvas');
         canvas.width = 320;
         canvas.height = 240;
-        canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, 320, 240);
         return canvas.toDataURL('image/jpeg', 0.5);
     }
 };
