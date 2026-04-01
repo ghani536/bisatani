@@ -250,13 +250,78 @@
                     </div>
                 </div>
 
-                <div class="page" id="page-admin-dashboard"><div class="welcome-card"><h2>Dashboard Admin</h2><p>Memuat statistik...</p></div></div>
-                <div class="page" id="page-payroll-reports"><div class="welcome-card"><h2>Payroll</h2><p>Laporan gaji periode berjalan.</p></div></div>
-                <div class="page" id="page-settings"><div class="welcome-card"><h2>Settings</h2><p>Pengaturan sistem dan jam kerja.</p></div></div>
+                <div class="page" id="page-payroll-reports">
+                    <div class="payroll-container" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                        <div class="payroll-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0; color: #1e293b;"><i class="fas fa-wallet"></i> Payroll (Periode 26 - 25)</h3>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <select id="payroll-month" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px;">
+                                    <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option>
+                                    <option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option>
+                                    <option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option>
+                                    <option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
+                                </select>
+                                <input type="number" id="payroll-year" value="2026" style="width: 85px; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                                <button class="btn-primary" onclick="payroll.calculate()" style="background: #10b981; color: #fff; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-calculator"></i> Hitung
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="reports-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="background: #f8fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
+                                        <th style="padding: 12px;">Karyawan</th>
+                                        <th>Gaji Pokok</th>
+                                        <th style="text-align:center;">Hadir</th>
+                                        <th style="text-align:center;">Lembur</th>
+                                        <th style="color: #10b981;">(+) Bonus</th>
+                                        <th style="color: #ef4444;">(-) Telat</th>
+                                        <th style="color: #ef4444;">(-) BPJS</th>
+                                        <th style="background: #f0fdf4; font-weight: 700;">Gaji Bersih</th>
+                                        <th style="text-align: center;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payroll-table-body">
+                                    <tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8;">Pilih periode lalu klik Hitung Gaji</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-settings">
+                    <div class="settings-container" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                        <h3 style="margin-bottom: 20px;"><i class="fas fa-cog"></i> Pengaturan Sistem</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="form-group">
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Jam Masuk</label>
+                                <input type="time" id="set-jam-masuk" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Jam Pulang</label>
+                                <input type="time" id="set-jam-pulang" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Bonus Lembur (Per Jam)</label>
+                                <input type="number" id="set-overtime-rate" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Denda Telat (Per Menit)</label>
+                                <input type="number" id="set-late-rate" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                            </div>
+                        </div>
+                        <button onclick="settings.saveWorkTime()" style="margin-top: 20px; background: #10b981; color: #fff; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: 600;">Simpan Pengaturan</button>
+                    </div>
+                </div>
+
+                <div class="page" id="page-admin-dashboard">
+                    <div class="welcome-card"><h2>Dashboard Admin</h2><p>Memuat statistik...</p></div>
+                </div>
 
             </div>
         </main>
-        
+
         <nav class="bottom-nav" id="bottom-nav">
             <a href="#" class="bottom-nav-item active" data-page="dashboard"><i class="fas fa-home"></i><span>Home</span></a>
             <a href="#" class="bottom-nav-item" data-page="absensi"><i class="fas fa-clock"></i><span>Absen</span></a>
@@ -270,7 +335,6 @@
                 <h3 id="modal-title" style="margin: 0; color: #1e293b;">Data Karyawan</h3>
                 <button type="button" onclick="document.getElementById('modal-employee').style.display='none'" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #64748b;">&times;</button>
             </div>
-            
             <form id="form-employee">
                 <input type="hidden" id="emp-id">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -312,6 +376,18 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="modal-slip" class="modal-custom">
+        <div class="modal-content" style="background: #fff; padding: 30px; border-radius: 15px; width: 90%; max-width: 450px; position: relative;">
+            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #eee; padding-bottom: 15px;">
+                <h2 style="margin: 0; color: #10b981;">PT. BISATANI</h2>
+                <p style="margin: 5px 0 0; font-size: 12px; color: #64748b;">SLIP GAJI KARYAWAN PERIODE 26 - 25</p>
+            </div>
+            <div id="slip-content" style="font-family: monospace; font-size: 13px; color: #334155;">
+                </div>
+            <button onclick="document.getElementById('modal-slip').style.display='none'" style="margin-top: 20px; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #f8fafc; cursor: pointer;">Tutup</button>
         </div>
     </div>
 
