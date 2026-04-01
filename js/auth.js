@@ -6,10 +6,13 @@ const auth = {
 
     init() {
         console.log("Auth: Inisialisasi...");
-        const session = storage.get('session');
+        // Gunakan localStorage langsung jika storage.js belum siap
+        const session = localStorage.getItem('session');
         if (session) {
-            this.user = session;
-            this.showApp();
+            try {
+                this.user = JSON.parse(session);
+                this.showApp();
+            } catch (e) { localStorage.removeItem('session'); }
         }
 
         const form = document.getElementById('login-form');
@@ -33,9 +36,9 @@ const auth = {
 
         if (!emailEl || !passwordEl || !roleEl) return;
 
-        const email = emailEl.value;
-        const password = passwordEl.value;
-        const role = roleEl.value;
+        const email = emailEl.value.trim();
+        const password = passwordEl.value.trim();
+        const selectedRole = roleEl.value;
 
         const btn = document.querySelector('.btn-login');
         if (btn) {
@@ -44,17 +47,26 @@ const auth = {
         }
 
         try {
+            // Memanggil API login
             const res = await api.login(email, password);
-            if (res.success && res.data) {
-                this.user = { ...res.data, role: res.data.role || role };
-                storage.set('session', this.user);
+            
+            // PERBAIKAN: Kode.gs mengembalikan 'res.user', bukan 'res.data'
+            if (res.success && res.user) {
+                // Gunakan role dari database, jika kosong baru pakai pilihan di form
+                this.user = { 
+                    ...res.user, 
+                    role: res.user.role || selectedRole 
+                };
+                
+                localStorage.setItem('session', JSON.stringify(this.user));
                 this.showApp();
             } else {
-                alert(res.error || "Login Gagal.");
+                alert(res.error || "Login Gagal: Periksa ID/Email dan Password.");
                 this.resetButton();
             }
         } catch (err) {
-            alert("Kesalahan sistem.");
+            console.error(err);
+            alert("Kesalahan sistem: Tidak dapat terhubung ke server.");
             this.resetButton();
         }
     },
@@ -79,12 +91,13 @@ const auth = {
 
         if (this.user) {
             // Update UI Identitas
-            document.getElementById('user-name').textContent = this.user.name;
+            const nameEl = document.getElementById('user-name');
             const welcomeEl = document.getElementById('welcome-name');
+            const roleEl = document.getElementById('user-role');
+
+            if (nameEl) nameEl.textContent = this.user.name;
             if (welcomeEl) welcomeEl.textContent = this.user.name.split(' ')[0];
-            
-            document.getElementById('user-role').textContent = 
-                this.user.role === 'admin' ? 'Administrator' : 'Karyawan';
+            if (roleEl) roleEl.textContent = this.user.role === 'admin' ? 'Administrator' : 'Karyawan';
             
             // Manajemen Menu Admin vs Karyawan
             const adminMenu = document.getElementById('admin-menu-nav');
@@ -98,15 +111,9 @@ const auth = {
                 if (adminMenu) adminMenu.classList.add('hidden');
                 if (empMenu) empMenu.classList.remove('hidden');
                 if (window.router) router.navigate('dashboard');
-                
-                // OPTIMASI: Langsung siapkan kamera & GPS di background
-                if (window.absensi) {
-                    console.log("Auth: Memanaskan hardware absensi...");
-                    absensi.init(); 
-                }
             }
         }
-    }, // <-- Tadi kurang kurung kurawal ini
+    },
 
     isLoggedIn() {
         return this.user !== null;
@@ -114,7 +121,7 @@ const auth = {
 
     handleLogout() {
         if (confirm("Apakah Anda yakin ingin keluar?")) {
-            storage.clear();
+            localStorage.removeItem('session');
             this.user = null;
             window.location.reload();
         }
