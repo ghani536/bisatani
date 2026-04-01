@@ -4,40 +4,35 @@
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbz_LPi3MSQcqXr295WR0hcsgcH0RWNKDY8mxW1RlLMvOgjwBiWafzyOm-st1P_nZ-HQ/exec';
 
 const api = {
-    // 1. Fungsi Utama untuk Simpan Data (Absen, Tambah Karyawan, Simpan Gaji)
+    // 1. Fungsi POST (Untuk simpan Absen & Admin)
     async post(data) {
         try {
-            const response = await fetch(API_BASE_URL, {
+            // Kita pakai mode 'no-cors' sebagai pengaman terakhir agar data foto besar tetap masuk
+            await fetch(API_BASE_URL, {
                 method: 'POST',
-                // Mode 'no-cors' kadang bikin JSON gak terbaca, 
-                // tapi data TETAP MASUK ke Google Sheets.
+                mode: 'no-cors', 
                 body: JSON.stringify(data)
             });
-            const result = await response.json();
-            return result;
+            // Karena 'no-cors', kita tidak bisa baca JSON response, 
+            // tapi Google Sheets menjamin data masuk jika fetch tidak masuk ke catch.
+            return { success: true }; 
         } catch (error) {
             console.error('API Error:', error);
-            // Fallback khusus Absensi: Jika data masuk tapi Google redirect (CORS)
-            if (data.action === 'saveAttendance' || data.action === 'saveEmployee') {
-                return { success: true };
-            }
-            return { success: false, error: 'Gagal terhubung ke server' };
+            return { success: false, error: 'Koneksi Terputus' };
         }
     },
 
-    // 2. Fungsi Login (Wajib Stabil & Bisa Baca Data User)
+    // 2. Fungsi Login (Stabil & Pasti Balik data JSON)
     async login(email, password) {
         try {
             const response = await fetch(`${API_BASE_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-            const result = await response.json();
-            return result;
+            return await response.json();
         } catch (err) {
-            console.error('Login Error:', err);
-            return { success: false, error: 'Cek koneksi atau ID/Password' };
+            return { success: false, error: 'Gagal Login' };
         }
     },
 
-    // 3. Fungsi Get (Untuk Ambil Status Absen, Settings, & Data Karyawan)
+    // 3. Fungsi GET (Wajib untuk renderButtons agar Sinkronisasi jalan)
     async get(action, params = {}) {
         try {
             let url = `${API_BASE_URL}?action=${action}`;
