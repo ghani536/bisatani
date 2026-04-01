@@ -1,7 +1,7 @@
 /**
  * Portal Karyawan - API PT. BISATANI
  */
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwrv9RmJbi4EMGbAbanwgZtU4zPbRqVglqtyi9GfITm5s1zWBpv84b4f63vrmsIwMoL/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbx2lSLCones9ZLmBl4UUarKnEppaCtxUcyQcZVRbNMB0PKQA-pK_Ri4mpG7WJKB95iY/exec';
 
 const api = {
     async post(data) {
