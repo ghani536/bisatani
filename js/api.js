@@ -1,5 +1,5 @@
 const api = {
-    BASE_URL: 'https://script.google.com/macros/s/AKfycbwwsfNreGYoQMs3S3qOTHWvnH5F2bbKMlEFcMeLdBlH8NYy5rbOI1BCMfcOE_k8mX3u/exec',
+    BASE_URL: 'https://script.google.com/macros/s/AKfycbwyn93RtPoAZzkzWx_TPb8Ad669BVem30RDm4rPPDDo67dtXKiWwCZ7VlHB0DPibhFC/exec',
 
     async post(data) {
         try {
