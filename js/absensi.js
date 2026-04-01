@@ -105,32 +105,51 @@ async submit(type) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
         try {
-            let statusTelat = "0"; // Default jika tidak telat
+            let statusTelat = "";
             
-            // CEK APAKAH SETTINGS ADA (Biar gak crash)
+            // Hitung Telat hanya jika absen MASUK
             if (type === 'MASUK') {
-                // Jika cache kosong, coba ambil paksa dari API dulu
-                if (!this.settingsCache) {
+                try {
                     const resSet = await api.post({ action: 'getSettings' });
-                    if (resSet.success) this.settingsCache = resSet.data;
-                }
-
-                // Hitung Telat hanya jika data jam_masuk ada
-                if (this.settingsCache && this.settingsCache.jam_masuk) {
-                    const now = new Date();
-                    const [h, m] = this.settingsCache.jam_masuk.split(':');
-                    const jadwalMasuk = new Date();
-                    jadwalMasuk.setHours(parseInt(h), parseInt(m), 0);
-                    
-                    if (now > jadwalMasuk) {
-                        const selisih = Math.floor((now - jadwalMasuk) / (1000 * 60));
-                        statusTelat = selisih + " Menit";
-                    } else {
-                        statusTelat = "Tepat Waktu";
+                    if (resSet && resSet.data && resSet.data.jam_masuk) {
+                        const now = new Date();
+                        const [h, m] = resSet.data.jam_masuk.split(':');
+                        const jadwal = new Date();
+                        jadwal.setHours(parseInt(h), parseInt(m), 0);
+                        
+                        if (now > jadwal) {
+                            const selisih = Math.floor((now - jadwal) / (1000 * 60));
+                            statusTelat = selisih + " Menit";
+                        } else {
+                            statusTelat = "Tepat Waktu";
+                        }
                     }
-                }
+                } catch (err) { statusTelat = "Terhitung"; }
             }
 
+            const payload = {
+                action: 'saveAttendance',
+                userId: auth.user.id,
+                userName: auth.user.name,
+                type: type,
+                location: this.locationName,
+                image: this.captureImage(), // FOTO TETAP DIKIRIM
+                statusTelat: statusTelat,   // KOLOM G
+                lat: this.location.lat,
+                lng: this.location.lng
+            };
+
+            const res = await api.post(payload);
+            alert(`Absen ${type} Berhasil!`);
+            await this.renderButtons();
+            
+        } catch (e) {
+            alert("Terjadi kesalahan, tapi data biasanya sudah masuk. Silakan cek tabel.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    },
             const payload = {
                 action: 'saveAttendance',
                 userId: auth.user.id,
