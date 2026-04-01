@@ -1,7 +1,3 @@
-/**
- * Portal Karyawan - Settings Engine PT. BISATANI
- * Menangani Jam Kerja, Tarif Lembur, dan Denda Telat
- */
 const settings = {
     data: {},
 
@@ -11,84 +7,51 @@ const settings = {
     },
 
     async loadSettings() {
-        const container = document.getElementById('page-settings');
-        if (!container) return;
-
         try {
-            // Ambil data settings dari Google Apps Script
             const res = await api.post({ action: 'getSettings' });
-            
             if (res.success) {
-                // Normalisasi data (Array to Object)
-                this.data = {};
-                if (Array.isArray(res.data)) {
-                    res.data.forEach(item => {
-                        this.data[item.key] = item.value;
-                    });
-                } else {
-                    this.data = res.data;
-                }
-
-                // Masukkan data ke Input Form di HTML
+                this.data = res.data || {};
                 this.fillForm();
             }
-        } catch (e) {
-            console.error("Settings: Gagal load data", e);
-        }
+        } catch (e) { console.error("Settings Load Error:", e); }
     },
 
     fillForm() {
-        // Mapping ID Input ke Key di Database
         const fields = {
             'set-jam-masuk': 'jam_masuk',
             'set-jam-pulang': 'jam_pulang',
+            'set-jam-lembur-min': 'jam_lembur_min',
             'set-overtime-rate': 'overtime_rate',
             'set-late-rate': 'late_rate'
         };
-
         for (let id in fields) {
             const el = document.getElementById(id);
-            const val = this.data[fields[id]];
-            if (el && val !== undefined) {
-                el.value = val;
-            }
+            if (el && this.data[fields[id]]) el.value = this.data[fields[id]];
         }
     },
 
     async saveWorkTime() {
         const btn = document.querySelector('button[onclick="settings.saveWorkTime()"]');
-        const originalText = btn.innerHTML;
-
         try {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
-            // Ambil nilai dari input
             const payload = {
-                action: 'savePayrollSettings', // Sesuai case di Kode.gs
+                action: 'savePayrollSettings',
                 jam_masuk: document.getElementById('set-jam-masuk').value,
                 jam_pulang: document.getElementById('set-jam-pulang').value,
+                jam_lembur_min: document.getElementById('set-jam-lembur-min').value,
                 overtime_rate: document.getElementById('set-overtime-rate').value,
                 late_rate: document.getElementById('set-late-rate').value
             };
 
             const res = await api.post(payload);
-
             if (res.success) {
-                alert("Pengaturan Berhasil Disimpan! \nSekarang kalkulasi Payroll akan menggunakan tarif terbaru ini.");
-                // Update data lokal
+                alert("Pengaturan Berhasil Disimpan!");
                 this.data = { ...this.data, ...payload };
-            } else {
-                alert("Gagal menyimpan: " + res.error);
             }
-        } catch (e) {
-            console.error(e);
-            alert("Terjadi kesalahan saat menghubungi server.");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
+        } catch (e) { alert("Gagal menyimpan!"); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> SIMPAN PENGATURAN SISTEM'; }
     }
 };
-
 window.settings = settings;
