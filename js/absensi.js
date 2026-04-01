@@ -70,76 +70,50 @@ const absensi = {
         );
     },
 
-    async renderButtons() {
-        const btnContainer = document.getElementById('attendance-btns');
-        const session = storage.get('session');
-        if (!btnContainer || !session) return;
-
-        btnContainer.innerHTML = '<div style="text-align:center; padding:15px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Data...</div>';
+ async renderButtons() {
+        const container = document.getElementById('attendance-btns');
+        if (!container) return;
 
         try {
-            const currentId = session.id || session.userId;
-            const res = await api.post({ 
-                action: 'getAttendanceStatus', 
-                userId: String(currentId),
-                _ts: new Date().getTime() 
-            });
+            // Ambil Status Terakhir & Setting Jam
+            const [statusRes, settingsRes] = await Promise.all([
+                api.post({ action: 'getAttendanceStatus', userId: auth.user.id }),
+                api.post({ action: 'getSettings' })
+            ]);
+
+            const lastType = statusRes.success && statusRes.data ? statusRes.data.type : null;
+            const config = settingsRes.success ? settingsRes.data : {};
             
-            if (!res.success) throw new Error(res.error);
-
-            const logs = res.logs || [];
-            const jamMulaiLembur = res.jamMulaiLembur || "17:00";
-            const serverTime = res.serverTime || "00:00";
-
-            const hasMasuk = logs.some(l => String(l.tipe).toUpperCase().trim() === 'MASUK');
-            const hasPulang = logs.some(l => String(l.tipe).toUpperCase().trim() === 'PULANG');
-            const hasMulaiLembur = logs.some(l => String(l.tipe).toUpperCase().trim() === 'MULAI_LEMBUR');
-            const hasSelesaiLembur = logs.some(l => String(l.tipe).toUpperCase().trim() === 'SELESAI_LEMBUR');
-
-            const [hServer, mServer] = serverTime.split(':').map(Number);
-            const [hLimit, mLimit] = jamMulaiLembur.split(':').map(Number);
-            const sudahWaktunyaLembur = ((hServer * 60) + mServer) >= ((hLimit * 60) + mLimit);
-
+            const now = new Date();
+            const jamSekarang = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            
             let html = '';
 
-            if (!hasMasuk) {
-                html = `<button class="attendance-btn clock-in-btn" onclick="absensi.submit('MASUK')">MASUK KERJA</button>`;
-            } 
-            else if (hasMasuk && !hasPulang) {
-                html = `<button class="attendance-btn clock-out-btn" onclick="absensi.submit('PULANG')">PULANG KERJA</button>`;
-            }
-            else if (hasPulang && !hasMulaiLembur) {
-                if (sudahWaktunyaLembur) {
-                    html = `
-                        <div style="text-align:center; margin-bottom:12px; color:#b45309; font-weight:bold;"><i class="fas fa-clock"></i> Waktu Lembur Dimulai</div>
-                        <button class="attendance-btn" style="background:#f59e0b; color:white;" onclick="absensi.submit('MULAI_LEMBUR')">MULAI LEMBUR</button>
-                    `;
-                } else {
-                    html = `
-                        <div style="text-align:center; padding:15px; border:1px solid #ddd; border-radius:12px; background:#f9fafb;">
-                            <p style="font-size:0.85rem; color:#6b7280; margin-bottom:10px;"><i class="fas fa-lock"></i> Tombol lembur aktif jam <b>${jamMulaiLembur}</b></p>
-                            <button class="attendance-btn" style="background:#d1d5db; color:#9ca3af; cursor:not-allowed;" disabled>MULAI LEMBUR</button>
-                        </div>
-                    `;
+            // LOGIKA TAMPILAN TOMBOL
+            if (!lastType || lastType === 'PULANG' || lastType === 'SELESAI_LEMBUR') {
+                // Tombol MASUK (Utama)
+                html += `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; margin-bottom:10px;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
+                
+                // Tombol MULAI LEMBUR (Hanya muncul jika sudah PULANG dan sudah masuk JAM MINIMAL LEMBUR)
+                if (lastType === 'PULANG' && config.jam_lembur_min) {
+                    if (jamSekarang >= config.jam_lembur_min) {
+                        html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
+                    } else {
+                        html += `<div style="text-align:center; padding:10px; background:#fff1f2; border-radius:8px; color:#e11d48; font-size:12px; font-weight:bold;">
+                            <i class="fas fa-lock"></i> Tombol Lembur Muncul Jam ${config.jam_lembur_min}
+                        </div>`;
+                    }
                 }
-            }
-            else if (hasMulaiLembur && !hasSelesaiLembur) {
-                html = `<button class="attendance-btn" style="background:#d97706; color:white" onclick="absensi.submit('SELESAI_LEMBUR')">SELESAI LEMBUR</button>`;
-            }
-            else {
-                html = `
-                    <div style="text-align:center; padding:25px; background:#f0fdf4; color:#166534; border-radius:15px; border:1px solid #bbf7d0;">
-                        <i class="fas fa-check-circle" style="font-size:2.5rem; margin-bottom:12px;"></i>
-                        <p style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">Selesai untuk hari ini</p>
-                        <p style="font-size:0.9rem; opacity:0.8;">Selamat beristirahat.</p>
-                    </div>
-                `;
+            } else if (lastType === 'MASUK') {
+                html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
+            } else if (lastType === 'MULAI_LEMBUR') {
+                html += `<button onclick="absensi.submit('SELESAI_LEMBUR')" class="btn-selesai-lembur" style="background:#0ea5e9; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold;"><i class="fas fa-check-double"></i> SELESAI LEMBUR</button>`;
             }
 
-            btnContainer.innerHTML = html;
+            container.innerHTML = html;
+
         } catch (e) {
-            console.error("Render Error:", e);
-            btnContainer.innerHTML = `<button class="attendance-btn" onclick="absensi.renderButtons()">Gagal Sinkron. Klik untuk Coba Lagi</button>`;
+            container.innerHTML = '<p style="color:red;">Gagal memuat tombol absensi.</p>';
         }
     },
 
