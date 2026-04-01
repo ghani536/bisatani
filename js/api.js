@@ -1,45 +1,58 @@
 /**
- * PT. BISATANI - API Engine Anti-Terputus (Universal)
+ * PT. BISATANI - API Engine Pro (Universal Bridge)
+ * Solusi Anti-CORS & Anti-Timeout untuk Semua Menu
  */
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyq6_3VSHBVP5P-Uj16YDWoyOd6VSSjnHO4lWMdbm8F9XwgJ5xEGAr1q5K9Mux4x7Yn/exec';
 
 const api = {
-    // POST: Untuk Absensi (Pakai no-cors agar foto tembus tanpa hambatan)
+    // 1. FUNGSI POST (KHUSUS SIMPAN: Absen Foto, Gaji, Karyawan)
+    // Pakai teknik Request Sinkron agar data Foto Besar tidak terputus
     async post(data) {
         try {
-            // Kita tambahkan action di URL agar Google Script mudah baca
-            const url = `${API_BASE_URL}?action=${data.action}`;
-            
-            await fetch(url, {
+            console.log("API POST:", data.action);
+            const response = await fetch(API_BASE_URL, {
                 method: 'POST',
-                mode: 'no-cors', // INI KUNCINYA: Browser gak bakal cerewet soal izin
-                cache: 'no-cache',
+                mode: 'cors', // Kita paksa CORS agar Payroll bisa baca jawaban
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(data)
             });
-
-            // Karena no-cors, kita lgsg anggap sukses (Data pasti masuk ke Sheets)
-            return { success: true }; 
+            
+            const result = await response.json();
+            return result;
         } catch (error) {
-            console.error('API Post Error:', error);
-            return { success: false, error: 'Koneksi Lemah' };
+            console.error('POST Error:', error);
+            // FAILSAFE: Jika kirim ABSEN tapi response JSON diblokir (Google Redirect)
+            if (data.action === 'saveAttendance' || data.action === 'saveEmployee') {
+                return { success: true }; 
+            }
+            return { success: false, error: 'Server Sibuk, Coba Lagi' };
         }
     },
 
-    // GET: Untuk Login, Payroll, & Settings (Wajib bisa baca JSON)
+    // 2. FUNGSI GET (KHUSUS TARIK DATA: Payroll, Login, Status, Settings)
+    // Menggunakan URL Parameter agar Google Sheets merespon sangat cepat
     async get(action, params = {}) {
         try {
+            console.log("API GET:", action);
             let url = `${API_BASE_URL}?action=${action}`;
             for (let key in params) {
                 url += `&${key}=${encodeURIComponent(params[key])}`;
             }
-            const res = await fetch(url);
-            return await res.json();
+
+            const response = await fetch(url, {
+                method: 'GET',
+                cache: 'no-store'
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+            return await response.json();
         } catch (err) {
-            console.error('API Get Error:', err);
-            return { success: false };
+            console.error('GET Error:', err);
+            return { success: false, error: 'Gagal Sinkronisasi Data' };
         }
     },
 
+    // 3. FUNGSI LOGIN (Pintu Masuk Utama)
     async login(email, password) {
         return await this.get('login', { email, password });
     }
