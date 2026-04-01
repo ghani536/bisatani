@@ -80,6 +80,9 @@ const router = {
 
             // Mapping halaman ke script yang sesuai
             switch (page) {
+                case 'admin-dashboard':
+                    if (window.adminDashboard) adminDashboard.init();
+                    break;
                 case 'dashboard':
                     if (window.dashboard) window.dashboard.init();
                     break;
