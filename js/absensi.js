@@ -96,7 +96,7 @@ const absensi = {
         } catch (e) { container.innerHTML = 'Gagal sinkron.'; }
     },
 
-    async submit(type) {
+async submit(type) {
         if (!this.location) return alert("Tunggu GPS mengunci lokasi!");
         
         const btn = event.currentTarget;
@@ -105,14 +105,32 @@ const absensi = {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
         try {
+            // Hitung Status Telat jika absen MASUK
+            let statusTelat = "";
+            if (type === 'MASUK' && this.settingsCache && this.settingsCache.jam_masuk) {
+                const now = new Date();
+                const [h, m] = this.settingsCache.jam_masuk.split(':');
+                const jadwalMasuk = new Date();
+                jadwalMasuk.setHours(h, m, 0);
+                
+                if (now > jadwalMasuk) {
+                    const selisih = Math.floor((now - jadwalMasuk) / (1000 * 60));
+                    statusTelat = selisih + " Menit";
+                } else {
+                    statusTelat = "0";
+                }
+            }
+
             const payload = {
                 action: 'saveAttendance',
                 userId: auth.user.id,
                 userName: auth.user.name,
                 type: type,
-                location: this.locationName, // Kirim Nama Alamat ke Sheet
-                lat: this.location.lat,
-                lng: this.location.lng
+                location: this.locationName,
+                image: this.stream ? this.captureImage() : "", // Jika ada fungsi capture
+                statusTelat: statusTelat, // Kolom G
+                lat: this.location.lat,    // Kolom H (Mulai Lembur diisi ini kalau di Kode.gs lama)
+                lng: this.location.lng     // Kolom I
             };
 
             const res = await api.post(payload);
@@ -122,6 +140,16 @@ const absensi = {
             } else { alert("Gagal: " + res.error); }
         } catch (e) { alert("Koneksi Error"); }
         finally { btn.disabled = false; btn.innerHTML = originalText; }
+    },
+
+    // Tambahkan fungsi capture kalau belum ada
+    captureImage() {
+        const video = document.getElementById('webcam-preview');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        return canvas.toDataURL('image/jpeg', 0.5);
     }
 };
 
