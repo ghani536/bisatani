@@ -76,7 +76,7 @@
         .filter-row {
             display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc;
             padding: 15px; border-radius: 10px; margin-bottom: 15px;
-            align-items: flex-end; border: 1px solid #e2e8f0;
+            align-items: flex-end; border: 1px solid #e2e880;
         }
         .filter-item { display: flex; flex-direction: column; gap: 5px; }
         .filter-item label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
@@ -144,6 +144,7 @@
     <div id="app-container" class="app-container hidden">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header"><div class="sidebar-logo"><i class="fas fa-seedling"></i><span class="sidebar-brand">BISATANI</span></div></div>
+            
             <nav class="sidebar-nav employee-menu" id="employee-menu">
                 <div class="nav-section">
                     <span class="nav-label">Menu Utama</span>
@@ -153,6 +154,7 @@
                     </ul>
                 </div>
             </nav>
+
             <nav class="sidebar-nav admin-menu hidden" id="admin-menu-nav">
                 <div class="nav-section">
                     <span class="nav-label">Panel Admin</span>
@@ -170,6 +172,7 @@
                     </ul>
                 </div>
             </nav>
+
             <div class="sidebar-footer">
                 <div class="user-profile">
                     <div class="user-avatar"><img src="https://ui-avatars.com/api/?name=User" id="user-avatar"></div>
@@ -181,12 +184,19 @@
 
         <main class="main-content">
             <header class="top-bar">
-                <div class="top-bar-left"><button class="mobile-menu-toggle" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button><h1 class="page-title" id="page-title">Dashboard</h1></div>
-                <div class="top-bar-right"><div class="current-time" id="current-time"><span class="time">00:00:00</span><span class="date">-- --- ----</span></div></div>
+                <div class="top-bar-left">
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title" id="page-title">Dashboard</h1>
+                </div>
+                <div class="top-bar-right">
+                    <div class="current-time" id="current-time"><span class="time">00:00:00</span><span class="date">-- --- ----</span></div>
+                </div>
             </header>
 
             <div class="page-content" id="page-content">
-                <div class="page active" id="page-dashboard"><div class="welcome-card"><h2>Halo, <span id="welcome-name">Karyawan</span>! 👋</h2><p>Selamat bekerja di PT. Bisatani.</p></div></div>
+                <div class="page active" id="page-dashboard">
+                    <div class="welcome-card"><h2>Halo, <span id="welcome-name">Karyawan</span>! 👋</h2><p>Selamat bekerja di PT. Bisatani.</p></div>
+                </div>
                 
                 <div class="page" id="page-absensi">
                     <div class="absensi-container">
@@ -209,7 +219,14 @@
                             <h3 style="margin: 0;"><i class="fas fa-users"></i> Data Karyawan</h3>
                             <button class="btn-primary" id="btn-add-employee" style="background: #10b981; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;"><i class="fas fa-plus"></i> Tambah</button>
                         </div>
-                        <div class="table-responsive"><table class="reports-table" style="width: 100%;"><thead style="background: #f8fafc;"><tr><th>No</th><th>Nama/ID</th><th>Email</th><th>Dept</th><th>Jabatan</th><th>Gaji</th><th>Aksi</th></tr></thead><tbody id="employees-table-body"></tbody></table></div>
+                        <div class="table-responsive">
+                            <table class="reports-table" style="width: 100%;">
+                                <thead style="background: #f8fafc;">
+                                    <tr><th>No</th><th>Nama/ID</th><th>Email</th><th>Dept</th><th>Jabatan</th><th>Gaji</th><th>Aksi</th></tr>
+                                </thead>
+                                <tbody id="employees-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -219,9 +236,17 @@
                         <div class="filter-row">
                             <div class="filter-item"><label>Dari</label><input type="date" id="report-start-date"></div>
                             <div class="filter-item"><label>Sampai</label><input type="date" id="report-end-date"></div>
-                            <button id="btn-export-attendance" class="btn-primary" style="background: #1e293b;"><i class="fas fa-file-excel"></i> Export</button>
+                            <div class="filter-item"><label>Cari Nama/ID</label><input type="text" id="report-search" placeholder="Cari..."></div>
+                            <button onclick="adminReports.loadData()" class="btn-primary" style="background: #10b981;"><i class="fas fa-search"></i> Filter</button>
                         </div>
-                        <div class="table-responsive"><table class="reports-table" style="width: 100%; font-size: 12px;"><thead style="background: #f8fafc;"><tr><th>No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Catatan</th><th>Total Jam</th></tr></thead><tbody id="attendance-reports-body"></tbody></table></div>
+                        <div class="table-responsive">
+                            <table class="reports-table" style="width: 100%; font-size: 12px;">
+                                <thead style="background: #f8fafc;">
+                                    <tr><th>No</th><th>Waktu</th><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Foto</th><th>Catatan</th><th>Total Jam</th></tr>
+                                </thead>
+                                <tbody id="attendance-reports-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -242,6 +267,9 @@
                                 <input type="number" id="payroll-year" value="2026" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; width: 80px;">
                                 <button class="btn-primary" onclick="payroll.calculate()" style="background: #10b981; border:none; padding: 8px 15px; border-radius: 8px; color:white; cursor: pointer; font-weight: 600;">
                                     <i class="fas fa-calculator"></i> Hitung
+                                </button>
+                                <button onclick="payroll.exportToExcel()" class="btn-primary" style="background: #1e293b; border:none; padding: 8px 15px; border-radius: 8px; color:white; cursor: pointer;">
+                                    <i class="fas fa-file-excel"></i> Export Payroll
                                 </button>
                             </div>
                         </div>
