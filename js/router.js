@@ -7,65 +7,113 @@ const router = {
     
     init() {
         console.log("Router: Menginisialisasi navigasi...");
-        const menuItems = document.querySelectorAll('.nav-item, .bottom-nav-item, [data-page]');
+        
+        // Ambil semua elemen yang punya atribut data-page
+        const menuItems = document.querySelectorAll('[data-page]');
         
         menuItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                const page = item.dataset.page;
+            // Hapus event listener lama agar tidak double
+            item.onclick = (e) => {
+                const page = item.getAttribute('data-page');
                 if (page) {
                     e.preventDefault();
                     this.navigate(page);
                 }
-            });
+            };
         });
 
-        // Cek jika ada sesi tersimpan
-        const lastPage = storage.get('currentPage') || 'dashboard';
-        if (auth.isLoggedIn()) this.navigate(lastPage);
+        // Cek jika ada sesi tersimpan atau sedang login
+        // Gunakan localStorage langsung jika 'storage' object tidak ditemukan
+        const savedPage = localStorage.getItem('currentPage') || 'dashboard';
+        
+        if (typeof auth !== 'undefined' && auth.isLoggedIn()) {
+            this.navigate(savedPage);
+        }
     },
 
     navigate(page) {
-        if (!auth.isLoggedIn()) return;
+        // Cek Login (Pastikan object auth ada)
+        if (typeof auth !== 'undefined' && !auth.isLoggedIn()) return;
 
         console.log("Router: Berpindah ke ->", page);
 
-        // 1. Update UI Active Class
-        document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(item => {
+        // 1. Update UI Active Class di Sidebar & Bottom Nav
+        document.querySelectorAll('[data-page]').forEach(item => {
             item.classList.remove('active');
-            if (item.dataset.page === page) item.classList.add('active');
+            if (item.getAttribute('data-page') === page) {
+                item.classList.add('active');
+            }
         });
 
-        // 2. Switch Halaman
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        // 2. Switch Halaman (Sembunyikan semua, munculkan satu)
+        const allPages = document.querySelectorAll('.page');
+        allPages.forEach(p => {
+            p.classList.remove('active');
+            p.style.display = 'none'; // Paksa sembunyi
+        });
+
         const target = document.getElementById(`page-${page}`);
         if (target) {
             target.classList.add('active');
+            target.style.display = 'block'; // Paksa muncul
+            
             this.currentPage = page;
-            storage.set('currentPage', page);
+            localStorage.setItem('currentPage', page);
             
-            // Update Title
+            // Update Title di Header
             const titleEl = document.getElementById('page-title');
-            if (titleEl) titleEl.textContent = page.replace('-', ' ').toUpperCase();
+            if (titleEl) {
+                // Ubah 'payroll-reports' jadi 'PAYROLL REPORTS'
+                titleEl.textContent = page.replace(/-/g, ' ').toUpperCase();
+            }
             
-            // 3. Jalankan Init Spesifik Halaman
+            // 3. JALANKAN INIT SPESIFIK HALAMAN
             this.triggerPageInit(page);
+        } else {
+            console.error("Router: ID halaman tidak ditemukan -> page-" + page);
         }
     },
 
     triggerPageInit(page) {
         try {
-            // Aktifkan script sesuai halaman
-            if (page === 'absensi' && window.absensi) window.absensi.init();
-            if (page === 'attendance-reports' && window.adminReports) window.adminReports.init();
-            if (page === 'employees' && window.adminEmployees) window.adminEmployees.init();
-            if (page === 'payroll-reports' && window.payroll) window.payroll.init();
-            if (page === 'settings' && window.settings) window.settings.init();
+            console.log("Router: Menjalankan init untuk script ->", page);
+
+            // Mapping halaman ke script yang sesuai
+            switch (page) {
+                case 'dashboard':
+                    if (window.dashboard) window.dashboard.init();
+                    break;
+                case 'absensi':
+                    if (window.absensi) window.absensi.init();
+                    break;
+                case 'employees':
+                    if (window.adminEmployees) window.adminEmployees.init();
+                    break;
+                case 'attendance-reports':
+                    // PASTIKAN NAMA OBJECTNYA adminReports
+                    if (window.adminReports) {
+                        window.adminReports.init();
+                    } else {
+                        console.warn("Router: Script adminReports belum ter-load!");
+                    }
+                    break;
+                case 'payroll-reports':
+                    if (window.payroll) window.payroll.init();
+                    break;
+                case 'settings':
+                    if (window.settings) window.settings.init();
+                    break;
+            }
         } catch (e) {
             console.error("Router: Gagal init halaman " + page, e);
         }
     }
 };
 
+// Jalankan router saat halaman siap
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => router.init(), 200);
+    // Beri jeda sedikit agar script lain (api.js, auth.js) siap dulu
+    setTimeout(() => {
+        router.init();
+    }, 300);
 });
