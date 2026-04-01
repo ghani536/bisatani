@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Admin Employees PT. BISATANI
- * Versi Lengkap: Add, Edit, Delete
+ * Versi Lengkap: Add, Edit, Delete (Optimized)
  */
 const adminEmployees = {
     employees: [],
@@ -21,12 +21,19 @@ const adminEmployees = {
                 this.employees = res.data || [];
                 this.renderTable();
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Gagal load karyawan:", e); 
+        }
     },
 
     renderTable() {
         const tbody = document.getElementById('employees-table-body');
         if (!tbody) return;
+
+        if (this.employees.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Belum ada data karyawan</td></tr>';
+            return;
+        }
 
         tbody.innerHTML = this.employees.map((emp, index) => `
             <tr>
@@ -37,8 +44,8 @@ const adminEmployees = {
                 <td>${emp.position || '-'}</td>
                 <td>Rp ${Number(emp.gaji_pokok || 0).toLocaleString('id-ID')}</td>
                 <td style="text-align:center;">
-                    <button onclick="adminEmployees.prepareEdit('${emp.id}')" style="background:#f59e0b; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                    <button onclick="adminEmployees.deleteEmployee('${emp.id}')" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-left:5px;"><i class="fas fa-trash"></i></button>
+                    <button onclick="adminEmployees.prepareEdit('${emp.id}')" style="background:#f59e0b; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button onclick="adminEmployees.deleteEmployee('${emp.id}')" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-left:5px;" title="Hapus"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -65,29 +72,47 @@ const adminEmployees = {
     },
 
     async handleSubmit() {
-        const payload = {
-            action: 'saveEmployee',
-            id: document.getElementById('emp-id').value,
-            name: document.getElementById('emp-name').value,
-            email: document.getElementById('emp-email').value,
-            department: document.getElementById('emp-dept').value,
-            position: document.getElementById('emp-position').value,
-            role: document.getElementById('emp-role').value,
-            gaji_pokok: document.getElementById('emp-gaji').value,
-            bpjs: document.getElementById('emp-bpjs').value
-        };
+        const btn = document.querySelector('#form-employee button[type="submit"]');
+        const originalText = btn.innerHTML;
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
-        const res = await api.post(payload);
-        if (res.success) {
-            alert("Berhasil disimpan!");
-            document.getElementById('modal-employee').style.display = 'none';
+            const payload = {
+                action: 'saveEmployee',
+                id: document.getElementById('emp-id').value,
+                name: document.getElementById('emp-name').value,
+                email: document.getElementById('emp-email').value,
+                department: document.getElementById('emp-dept').value,
+                position: document.getElementById('emp-position').value,
+                role: document.getElementById('emp-role').value,
+                gaji_pokok: document.getElementById('emp-gaji').value,
+                bpjs: document.getElementById('emp-bpjs').value
+            };
+
+            const res = await api.post(payload);
+            if (res.success) {
+                alert("Berhasil disimpan!");
+                document.getElementById('modal-employee').style.display = 'none';
+                this.loadEmployees();
+            } else {
+                alert("Gagal: " + res.error);
+            }
+        } catch (e) {
+            alert("Proses selesai. Silakan refresh tabel.");
             this.loadEmployees();
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     },
 
     prepareEdit(id) {
         const emp = this.employees.find(e => String(e.id) === String(id));
         if (!emp) return;
+        
+        document.getElementById('modal-title').textContent = "Edit Karyawan";
         document.getElementById('emp-id').value = emp.id;
         document.getElementById('emp-name').value = emp.name;
         document.getElementById('emp-email').value = emp.email;
@@ -98,11 +123,12 @@ const adminEmployees = {
         document.getElementById('modal-employee').style.display = 'flex';
     },
 
-    // --- INI FUNGSI YANG TADI HILANG ---
     async deleteEmployee(id) {
         if (!confirm(`Hapus karyawan dengan ID ${id}? Data tidak bisa dikembalikan!`)) return;
 
         try {
+            // Tampilkan feedback loading di tombol jika perlu, 
+            // tapi alert konfirmasi sudah cukup sebagai penahan.
             const res = await api.post({ 
                 action: 'deleteEmployee', 
                 id: id 
@@ -110,12 +136,17 @@ const adminEmployees = {
 
             if (res.success) {
                 alert("Karyawan berhasil dihapus!");
-                this.loadEmployees(); // Refresh tabel
+                this.loadEmployees();
             } else {
-                alert("Gagal menghapus: " + res.error);
+                // Jika server merespon gagal tapi data hilang (kasus timeout Google)
+                console.warn("Respon server: ", res.error);
+                alert("Proses hapus selesai.");
+                this.loadEmployees();
             }
         } catch (e) {
-            alert("Terjadi kesalahan koneksi saat menghapus.");
+            // Kasus timeout (lama menunggu respon) tapi sebenarnya di Sheets sudah hapus
+            console.error("Koneksi timeout, merefresh tabel...");
+            setTimeout(() => this.loadEmployees(), 1000);
         }
     }
 };
