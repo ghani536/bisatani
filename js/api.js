@@ -1,6 +1,6 @@
 const api = {
     // PASTIIN URL INI BENAR (Hasil Deploy Terakhir)
-    BASE_URL: 'https://script.google.com/macros/s/AKfycbx2lSLCones9ZLmBl4UUarKnEppaCtxUcyQcZVRbNMB0PKQA-pK_Ri4mpG7WJKB95iY/exec',
+    BASE_URL: 'https://script.google.com/macros/s/AKfycbwo5hkiBxFv5VBo5WNtCIsy8jWov0HYcRneArqTRkWdy5U-ZL1QmzHL0KDFnruTz3Sh/exec',
 
     async post(data) {
         try {
