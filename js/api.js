@@ -2,7 +2,7 @@
  * PT. BISATANI - API Engine Pro (Universal Bridge)
  * Solusi Anti-CORS & Anti-Timeout untuk Semua Menu
  */
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyq6_3VSHBVP5P-Uj16YDWoyOd6VSSjnHO4lWMdbm8F9XwgJ5xEGAr1q5K9Mux4x7Yn/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzEuWW4aEi3g_VX8FtGGfpIMAF2R6CQ0Y1ckHOzZ3C1e4KwVewviG_PxNRmHeSBY4kS/exec';
 
 const api = {
     // 1. FUNGSI POST (KHUSUS SIMPAN: Absen Foto, Gaji, Karyawan)
