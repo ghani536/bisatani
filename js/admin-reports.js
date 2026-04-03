@@ -9,7 +9,6 @@ const adminReports = {
     async init() {
         console.log("AdminReports: Inisialisasi...");
         this.setupFilters();
-        // Pakai 'await' agar bindEvents dan renderTable tidak mendahului loadData
         await this.loadData();
         this.bindEvents();
     },
@@ -19,37 +18,33 @@ const adminReports = {
         const startInput = document.getElementById('report-start-date');
         const endInput = document.getElementById('report-end-date');
         
-        // Hanya set jika input masih kosong
         if (startInput && !startInput.value) startInput.value = today;
         if (endInput && !endInput.value) endInput.value = today;
     },
 
     async loadData() {
         const tbody = document.getElementById('attendance-reports-body');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data dari database...</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data database...</td></tr>';
 
         try {
-            const [resAtt, resEmp] = await Promise.all([
-                api.post({ action: 'getAllAttendanceData' }),
-                api.post({ action: 'getEmployees' })
-            ]);
+            // Gunakan api.get agar lebih stabil untuk penarikan data
+            const resAtt = await api.get('getAllAttendanceData');
+            const resEmp = await api.get('getEmployees');
 
-            if (resAtt.success) {
+            if (resAtt && resAtt.success) {
                 this.allAttendance = resAtt.data || [];
-                console.log("AdminReports: Data Absensi dimuat ->", this.allAttendance.length);
             }
 
-            if (resEmp.success) {
+            if (resEmp && resEmp.success) {
                 this.employees = resEmp.data || [];
                 this.populateEmployeeFilter();
             }
 
-            // Jalankan render setelah data dipastikan masuk
             this.renderTable();
 
         } catch (e) {
             console.error("AdminReports Error:", e);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Koneksi ke server terputus.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Gagal memuat data laporan.</td></tr>';
         }
     },
 
@@ -68,9 +63,12 @@ const adminReports = {
         const filters = ['report-start-date', 'report-end-date', 'report-type-filter', 'report-employee-filter'];
         filters.forEach(id => {
             const el = document.getElementById(id);
-            // Gunakan arrow function agar 'this' tetap merujuk ke adminReports
             if (el) el.onchange = () => this.renderTable();
         });
+
+        // Tambahkan event untuk tombol cari/filter manual
+        const btnFilter = document.querySelector('button[onclick="adminReports.loadData()"]');
+        if(btnFilter) btnFilter.onclick = () => this.loadData();
 
         const btnExport = document.getElementById('btn-export-attendance');
         if (btnExport) {
@@ -82,29 +80,36 @@ const adminReports = {
         const tbody = document.getElementById('attendance-reports-body');
         if (!tbody) return;
 
-        const start = document.getElementById('report-start-date').value;
-        const end = document.getElementById('report-end-date').value;
-        const type = document.getElementById('report-type-filter').value;
-        const empId = document.getElementById('report-employee-filter').value;
-
-        console.log(`Filtering: ${start} s/d ${end}`);
+        // --- SAFETY CHECK (MENCEGAH ERROR NULL READING VALUE) ---
+        const start = document.getElementById('report-start-date')?.value || "";
+        const end = document.getElementById('report-end-date')?.value || "";
+        const type = document.getElementById('report-type-filter')?.value || "";
+        const empId = document.getElementById('report-employee-filter')?.value || "";
+        const search = document.getElementById('report-search')?.value?.toLowerCase() || "";
 
         const filtered = this.allAttendance.filter(log => {
-            // Bersihkan timestamp untuk perbandingan tanggal saja
+            if (!log.timestamp) return false;
+            
             const logDate = new Date(log.timestamp).toISOString().split('T')[0];
-            const matchDate = logDate >= start && logDate <= end;
+            const matchDate = (!start || !end) ? true : (logDate >= start && logDate <= end);
             const matchType = type === "" || log.type === type;
             const matchEmp = empId === "" || String(log.userId) === String(empId);
-            return matchDate && matchType && matchEmp;
+            const matchSearch = search === "" || 
+                               (log.userName && log.userName.toLowerCase().includes(search)) || 
+                               (String(log.userId).includes(search));
+
+            return matchDate && matchType && matchEmp && matchSearch;
         });
 
         if (filtered.length === 0) {
             tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#64748b;">
-                <i class="fas fa-info-circle"></i> Tidak ada absensi ditemukan.<br>
-                <small>Coba cek range tanggal (Dari - Sampai) atau pastikan data sudah ada di Google Sheets.</small>
+                <i class="fas fa-info-circle"></i> Tidak ada data ditemukan.
             </td></tr>`;
             return;
         }
+
+        // Urutkan data terbaru di paling atas
+        filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         tbody.innerHTML = filtered.map((log, index) => {
             const d = new Date(log.timestamp);
@@ -113,14 +118,14 @@ const adminReports = {
             return `
                 <tr>
                     <td style="text-align:center;">${index + 1}</td>
-                    <td>${waktu}</td>
+                    <td><small>${waktu}</small></td>
                     <td><strong>${log.userName || log.userId}</strong></td>
-                    <td><span class="badge-${log.type.toLowerCase()}">${log.type}</span></td>
+                    <td><span class="badge-${String(log.type).toLowerCase()}">${log.type}</span></td>
                     <td><small>${log.location || '-'}</small></td>
                     <td style="text-align:center;">
                         ${log.image ? `<img src="${log.image}" style="width:35px; height:35px; border-radius:4px; object-fit:cover; cursor:pointer;" onclick="window.open(this.src)">` : '-'}
                     </td>
-                    <td>${log.note || '-'}</td>
+                    <td><small>${log.statusTelat || '-'}</small></td>
                     <td style="text-align:center;">${log.startTime || '-'}</td>
                     <td style="text-align:center;">${log.endTime || '-'}</td>
                     <td style="background:#f0f9ff; font-weight:bold; text-align:center;">${log.totalHours ? log.totalHours + ' j' : '-'}</td>
@@ -134,9 +139,10 @@ const adminReports = {
             alert("Tidak ada data untuk diexport!");
             return;
         }
-        let csv = "Waktu;Nama;Tipe;Lokasi;Catatan;Mulai;Selesai;Total Jam\n";
+        // Gunakan separator koma agar lebih universal
+        let csv = "Waktu,Nama,Tipe,Lokasi,Catatan,Mulai,Selesai,Total Jam\n";
         this.allAttendance.forEach(log => {
-            csv += `${log.timestamp};${log.userName || log.userId};${log.type};${log.location};${log.note};${log.startTime || ''};${log.endTime || ''};${log.totalHours || ''}\n`;
+            csv += `"${log.timestamp}","${log.userName || log.userId}","${log.type}","${log.location}","${log.statusTelat || ''}","${log.startTime || ''}","${log.endTime || ''}","${log.totalHours || ''}"\n`;
         });
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
