@@ -22,33 +22,38 @@ const settings = {
     },
 
     fillForm() {
-        // ID di HTML : Key di Spreadsheet
-        const fields = {
-            'set-jam-masuk': 'jam_masuk',
-            'set-jam-pulang': 'jam_pulang',
-            'set-jam-lembur-min': 'jam_lembur_min',
-            'set-overtime-rate': 'overtime_rate',
-            'set-late-rate': 'late_rate'
-        };
+    const fields = {
+        'set-jam-masuk': 'jam_masuk',
+        'set-jam-pulang': 'jam_pulang',
+        'set-jam-lembur-min': 'jam_lembur_min',
+        'set-overtime-rate': 'overtime_rate',
+        'set-late-rate': 'late_rate'
+    };
 
-        for (let id in fields) {
-            const el = document.getElementById(id);
-            const key = fields[id];
-            const value = this.data[key];
+    for (let id in fields) {
+        const el = document.getElementById(id);
+        const key = fields[id];
+        let value = this.data[key];
 
-            if (el) {
-                // Bersihkan value jika ada (menghapus spasi atau karakter aneh)
-                el.value = (value !== undefined && value !== null) ? String(value).trim() : "";
-                console.log(`Berhasil mengisi ${id} dengan: ${el.value}`);
+        if (el) {
+            if (el.type === 'time' && value) {
+                // PAKSA POTONG: Ambil cuma HH:mm (misal "08:00:00" jadi "08:00")
+                // Ini obat mujarab buat input type="time" yang mogok
+                const match = String(value).match(/\d{2}:\d{2}/);
+                el.value = match ? match[0] : "";
+            } else {
+                el.value = value || "";
             }
+            console.log(`Suntik data ke ${id}:`, el.value);
         }
-        
-        // Khusus Checkbox
-        const cbAnytime = document.getElementById('set-ot-anytime');
-        if (cbAnytime) {
-            cbAnytime.checked = (this.data.allow_overtime_anytime === "true" || this.data.allow_overtime_anytime === true);
-        }
-    },
+    }
+    
+    // Checkbox tetap sama
+    const cbAnytime = document.getElementById('set-ot-anytime');
+    if (cbAnytime) {
+        cbAnytime.checked = (String(this.data.allow_overtime_anytime) === "true");
+    }
+},
 
     bindEvents() {
         const btnSave = document.getElementById('btn-save-settings');
