@@ -77,7 +77,12 @@ async renderButtons() {
             api.get('getSettings')
         ]);
 
-        if (settingsRes && settingsRes.success) this.settingsCache = settingsRes.data;
+        // --- LAMPU INDIKATOR (CEK DI F12) ---
+        console.log("CEK DATA DARI GOOGLE SHEETS:", settingsRes);
+
+        if (settingsRes && settingsRes.success) {
+            this.settingsCache = settingsRes.data;
+        }
 
         const lastData = (statusRes && statusRes.success) ? statusRes.data : null;
         const todayStr = statusRes.today;
@@ -86,23 +91,24 @@ async renderButtons() {
 
         const config = this.settingsCache || {};
         
-        // 1. Ambil Jam Sekarang (Contoh: "13:45")
+        // 1. Ambil Jam Sekarang (Contoh: "13:55")
         const now = new Date();
         const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                        now.getMinutes().toString().padStart(2, '0');
         
-        // 2. NORMALISASI JAM SETTING (Obat Mujarab)
-        let rawJamLembur = config.jam_lembur_min || "17:00";
-        let jamMinLembur = "17:00"; // Default
-
-        // Jika data dari Google berantakan, kita peras pakai Regex untuk ambil angka saja
-        const match = String(rawJamLembur).match(/\d{1,2}:\d{2}/);
+        // 2. AMBIL DARI SHEET (Cek 2 kemungkinan nama key: jam_lembur_min atau jam_mulai_lembur)
+        let rawJam = config.jam_lembur_min || config.jam_mulai_lembur || "17:00";
+        
+        // Bersihkan format (Ambil cuma HH:mm)
+        let jamMinLembur = "17:00";
+        const match = String(rawJam).match(/\d{1,2}:\d{2}/);
         if (match) {
             let [h, m] = match[0].split(':');
             jamMinLembur = h.padStart(2, '0') + ":" + m;
         }
 
-        console.log(`DEBUG JAM: Sekarang(${jamNow}) vs Setting(${jamMinLembur})`);
+        // TAMPILKAN DI CONSOLE BIAR KELIHATAN SALAHNYA DIMANA
+        console.log(`KOMPARASI JAM -> Sekarang: ${jamNow} | Syarat Lembur: ${jamMinLembur}`);
 
         let html = '';
 
@@ -117,7 +123,7 @@ async renderButtons() {
                 html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
             }
 
-            // 3. BANDINGKAN: Teks vs Teks (Pasti Akurat)
+            // BANDINGKAN JAM
             const isReadyLembur = (jamNow >= jamMinLembur);
 
             if (isReadyLembur) {
