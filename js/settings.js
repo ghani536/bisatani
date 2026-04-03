@@ -31,8 +31,7 @@ const settings = {
             'set-jam-masuk': 'jam_masuk',
             'set-jam-pulang': 'jam_pulang',
             'set-jam-lembur-min': 'jam_lembur_min',
-            'set-overtime-rate': 'overtime_rate',
-            'set-late-rate': 'late_rate'
+            'set-overtime-rate': 'overtime_rate'
         };
 
         for (let id in fields) {
@@ -94,7 +93,6 @@ const settings = {
                 jam_pulang: document.getElementById('set-jam-pulang').value,
                 jam_lembur_min: document.getElementById('set-jam-lembur-min').value,
                 overtime_rate: document.getElementById('set-overtime-rate').value,
-                late_rate: document.getElementById('set-late-rate').value,
                 allow_overtime_anytime: document.getElementById('set-ot-anytime').checked
             };
 
