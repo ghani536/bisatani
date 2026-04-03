@@ -52,15 +52,18 @@ const absensi = {
         } catch (e) { this.locationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
     },
 
-    async renderButtons() {
+async renderButtons() {
         const container = document.getElementById('attendance-btns');
         if (!container) return;
         container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
 
         try {
+            // JURUS PAMUNGKAS: Tambahkan angka acak unik di setiap request
+            // agar Google terpaksa memberikan data terbaru dari Spreadsheet
+            const cacheBuster = Date.now();
             const [statusRes, settingsRes] = await Promise.all([
-                api.get('getAttendanceStatus', { userId: auth.user.id, _t: Date.now() }),
-                api.get('getSettings', { _t: Date.now() })
+                api.get(`getAttendanceStatus&cb=${cacheBuster}`, { userId: auth.user.id }),
+                api.get(`getSettings&cb=${cacheBuster}`)
             ]);
 
             if (settingsRes && settingsRes.success) this.settingsCache = settingsRes.data;
@@ -72,11 +75,10 @@ const absensi = {
 
             const config = this.settingsCache || {};
             const now = new Date();
-            // Ambil jam sekarang format HH:mm
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                            now.getMinutes().toString().padStart(2, '0');
             
-            // Proses Jam Lembur dari Setting (Regex buat bersihin data jam)
+            // Ambil jam lembur dari cache terbaru
             let rawJam = config.jam_lembur_min || config.jam_mulai_lembur || "17:00";
             let jamMinLembur = "17:00";
             const match = String(rawJam).match(/\d{1,2}:\d{2}/);
@@ -85,22 +87,17 @@ const absensi = {
                 jamMinLembur = h.padStart(2, '0') + ":" + m;
             }
 
-            // --- LOG DEBUG UNTUK BOS ---
-            console.log("--- PENGECEKAN JAM LEMBUR ---");
+            console.log("--- PENGECEKAN JAM LEMBUR (FRESH DATA) ---");
             console.log("Jam Sekarang:", jamNow);
             console.log("Jam Syarat Lembur:", jamMinLembur);
-            console.log("Status Terakhir:", lastType);
             console.log("Boleh Klik Lembur?", jamNow >= jamMinLembur);
-            console.log("-----------------------------");
 
             let html = '';
 
             if (!lastType) {
-                // 1. BELUM ABSEN SAMA SEKALI
                 html = `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
             } 
             else if (lastType === 'SELESAI_LEMBUR') {
-                // 2. SUDAH SELESAI LEMBUR (BANNER UCAPAN)
                 html = `
                     <div style="text-align:center; padding:20px; background:#f0f9ff; color:#0369a1; border-radius:12px; border: 1px solid #bae6fd;">
                         <i class="fas fa-heart" style="font-size:2rem; color:#0ea5e9; margin-bottom:10px;"></i><br>
@@ -110,24 +107,19 @@ const absensi = {
                 `;
             }
             else if (lastType === 'MASUK' || lastType === 'PULANG') {
-                // 3. JIKA SUDAH MASUK ATAU SUDAH PULANG
                 if (lastType === 'PULANG') {
                     html += `<div style="text-align:center; padding:15px; background:#dcfce7; color:#166534; border-radius:12px; font-weight:600; margin-bottom:15px; border: 1px solid #bdfdc6;"><i class="fas fa-check-circle"></i> Tugas Utama Selesai</div>`;
                 } else {
                     html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
                 }
 
-                // Cek apakah waktu sudah memenuhi syarat lembur
-                const isReadyLembur = (jamNow >= jamMinLembur);
-
-                if (isReadyLembur) {
+                if (jamNow >= jamMinLembur) {
                     html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
                 } else {
                     html += `<button disabled style="background:#cbd5e1; color:#94a3b8; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:not-allowed;"><i class="fas fa-lock"></i> LEMBUR (Aktif ${jamMinLembur})</button>`;
                 }
             } 
             else if (lastType === 'MULAI_LEMBUR') {
-                // 4. SEDANG LEMBUR
                 html = `<button onclick="absensi.submit('SELESAI_LEMBUR')" class="btn-selesai-lembur" style="background:#0ea5e9; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-check-double"></i> SELESAI LEMBUR</button>`;
             }
 
