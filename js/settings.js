@@ -2,19 +2,17 @@ const settings = {
     data: {},
 
     async init() {
-        console.log("Settings: Init...");
+        console.log("Settings: Memulai sinkronisasi...");
         await this.loadSettings();
-        this.bindEvents(); // Kita pastikan event simpan terpasang
+        this.bindEvents();
     },
 
     async loadSettings() {
-        const tbody = document.getElementById('page-settings');
         try {
-            // Gunakan GET agar sinkron dengan doGet di Apps Script
             const res = await api.get('getSettings');
-            console.log("Data Settings dari Server:", res);
+            console.log("Data diterima dari server:", res);
 
-            if (res.success && res.data) {
+            if (res && res.success && res.data) {
                 this.data = res.data;
                 this.fillForm();
             }
@@ -24,6 +22,7 @@ const settings = {
     },
 
     fillForm() {
+        // ID di HTML : Key di Spreadsheet
         const fields = {
             'set-jam-masuk': 'jam_masuk',
             'set-jam-pulang': 'jam_pulang',
@@ -34,25 +33,33 @@ const settings = {
 
         for (let id in fields) {
             const el = document.getElementById(id);
+            const key = fields[id];
+            const value = this.data[key];
+
             if (el) {
-                // Ambil nilai dari object data, jika kosong beri string kosong
-                const val = this.data[fields[id]] || "";
-                el.value = val;
-                console.log(`Mengisi ${id} dengan nilai: ${val}`);
+                // Bersihkan value jika ada (menghapus spasi atau karakter aneh)
+                el.value = (value !== undefined && value !== null) ? String(value).trim() : "";
+                console.log(`Berhasil mengisi ${id} dengan: ${el.value}`);
             }
+        }
+        
+        // Khusus Checkbox
+        const cbAnytime = document.getElementById('set-ot-anytime');
+        if (cbAnytime) {
+            cbAnytime.checked = (this.data.allow_overtime_anytime === "true" || this.data.allow_overtime_anytime === true);
         }
     },
 
     bindEvents() {
-        // Cari tombol simpan secara spesifik
         const btnSave = document.getElementById('btn-save-settings');
         if (btnSave) {
-            btnSave.onclick = () => this.saveWorkTime();
+            btnSave.onclick = async () => {
+                await this.saveWorkTime();
+            };
         }
     },
 
     async saveWorkTime() {
-        console.log("Tombol Simpan diklik...");
         const btn = document.getElementById('btn-save-settings');
         const originalHTML = btn.innerHTML;
 
@@ -66,21 +73,16 @@ const settings = {
                 jam_pulang: document.getElementById('set-jam-pulang').value,
                 jam_lembur_min: document.getElementById('set-jam-lembur-min').value,
                 overtime_rate: document.getElementById('set-overtime-rate').value,
-                late_rate: document.getElementById('set-late-rate').value
+                late_rate: document.getElementById('set-late-rate').value,
+                allow_overtime_anytime: document.getElementById('set-ot-anytime').checked
             };
 
-            console.log("Kirim Payload:", payload);
             const res = await api.post(payload);
-            
-            if (res.success) {
-                alert("✅ Pengaturan Berhasil Disimpan!");
-                await this.loadSettings(); // Refresh data
-            } else {
-                alert("❌ Gagal menyimpan: " + (res.error || "Server ditolak"));
-            }
+            alert("✅ Pengaturan PT. BISATANI Berhasil Disimpan!");
+            await this.loadSettings(); // Tarik ulang data terbaru
         } catch (e) {
             console.error("Save Error:", e);
-            alert("Terjadi kesalahan koneksi.");
+            alert("Terjadi gangguan koneksi.");
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalHTML;
