@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Admin Reports PT. BISATANI
- * Solusi Final: Fix Variabel (Mulai, Selesai, Total)
+ * Versi Full: Menampilkan Mulai, Selesai, dan Total Lembur
  */
 const adminReports = {
     allAttendance: [],
@@ -15,14 +15,16 @@ const adminReports = {
 
     setupFilters() {
         const today = new Date().toISOString().split('T')[0];
-        if (document.getElementById('report-start-date')) document.getElementById('report-start-date').value = today;
-        if (document.getElementById('report-end-date')) document.getElementById('report-end-date').value = today;
+        const start = document.getElementById('report-start-date');
+        const end = document.getElementById('report-end-date');
+        if (start) start.value = today;
+        if (end) end.value = today;
     },
 
     async loadData() {
         const tbody = document.getElementById('attendance-reports-body');
         if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data terbaru...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi database...</td></tr>';
 
         try {
             const [resAtt, resEmp] = await Promise.all([
@@ -37,7 +39,8 @@ const adminReports = {
             }
             this.renderTable();
         } catch (e) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Gagal sinkronisasi data.</td></tr>';
+            console.error("Load Data Error:", e);
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Gagal memuat data.</td></tr>';
         }
     },
 
@@ -45,19 +48,20 @@ const adminReports = {
         const select = document.getElementById('report-employee-filter');
         if (!select) return;
         let html = '<option value="">Semua Karyawan</option>';
-        this.employees.forEach(emp => html += `<option value="${emp.id}">${emp.name}</option>`);
+        this.employees.forEach(emp => {
+            html += `<option value="${emp.id}">${emp.name}</option>`;
+        });
         select.innerHTML = html;
     },
 
     bindEvents() {
         ['report-start-date', 'report-end-date', 'report-type-filter', 'report-employee-filter', 'report-search'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('change', () => this.renderTable());
-            if (el && el.tagName === 'INPUT') el.addEventListener('keyup', () => this.renderTable());
+            if (el) {
+                el.addEventListener('change', () => this.renderTable());
+                if (el.tagName === 'INPUT') el.addEventListener('keyup', () => this.renderTable());
+            }
         });
-        if (document.getElementById('btn-export-attendance')) {
-            document.getElementById('btn-export-attendance').onclick = () => alert("Fitur Export CSV Aktif");
-        }
     },
 
     renderTable() {
@@ -84,11 +88,14 @@ const adminReports = {
             return;
         }
 
+        // Urutkan dari yang terbaru
         filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         tbody.innerHTML = filtered.map((log, index) => {
             const d = new Date(log.timestamp);
             const waktu = d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+            
+            // Render Baris Tabel dengan mapping yang akurat
             return `
                 <tr>
                     <td style="text-align:center;">${index + 1}</td>
@@ -100,12 +107,13 @@ const adminReports = {
                         ${log.image ? `<img src="${log.image}" style="width:35px; height:35px; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">` : '-'}
                     </td>
                     <td><small>${log.statusTelat || '-'}</small></td>
-                    <td style="text-align:center;">${log.mulai || '-'}</td>
-                    <td style="text-align:center;">${log.selesai || '-'}</td>
-                    <td style="text-align:center; font-weight:bold; color:#6366f1;">${log.totalHours || '-'}</td>
+                    <td style="text-align:center;">${log.mulai}</td>
+                    <td style="text-align:center;">${log.selesai}</td>
+                    <td style="text-align:center; font-weight:bold; color:#2563eb;">${log.totalHours}</td>
                 </tr>
             `;
         }).join('');
     }
 };
+
 window.adminReports = adminReports;
