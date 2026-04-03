@@ -259,18 +259,42 @@
                     </div>
                 </div>
 
-                <div class="page" id="page-settings">
-                    <div class="settings-container" style="padding: 25px; background: #fff; border-radius: 12px;">
-                        <h3><i class="fas fa-cog"></i> Pengaturan Sistem</h3>
-                        <div class="settings-grid">
-                            <div class="form-group"><label>JAM MASUK</label><input type="time" id="set-jam-masuk"></div>
-                            <div class="form-group"><label>JAM PULANG</label><input type="time" id="set-jam-pulang"></div>
-                            <div class="form-group"><label>SYARAT LEMBUR</label><input type="time" id="set-jam-lembur-min"></div>
-                            <div class="form-group"><label>BONUS LEMBUR (per jam)</label><input type="number" id="set-overtime-rate"></div>
-                        </div>
-                        <button onclick="settings.saveWorkTime()" style="margin-top: 20px; background: #10b981; color: #fff; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: 700;"><i class="fas fa-save"></i> SIMPAN</button>
-                    </div>
-                </div>
+                <div class="page" id="page-admin-settings">
+    <form id="form-settings" style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <h4 style="margin-bottom:20px;">Konfigurasi Sistem PT. BISATANI</h4>
+        
+        <div style="margin-bottom:15px;">
+            <label>Jam Masuk Kerja</label>
+            <input type="time" id="set-jam-masuk" class="form-control" required>
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <label>Jam Pulang Kerja</label>
+            <input type="time" id="set-jam-pulang" class="form-control" required>
+        </div>
+
+        <hr>
+
+        <div style="margin-bottom:15px;">
+            <label>Denda Telat (per kali)</label>
+            <input type="number" id="set-late-rate" class="form-control" placeholder="Contoh: 5000">
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <label>Upah Lembur (per jam)</label>
+            <input type="number" id="set-overtime-rate" class="form-control" placeholder="Contoh: 15000">
+        </div>
+
+        <div style="margin-bottom:20px; padding:10px; background:#f8fafc; border-radius:8px; display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="set-ot-anytime" style="width:20px; height:20px;">
+            <label for="set-ot-anytime" style="margin:0; font-size:13px; font-weight:600; cursor:pointer;">
+                Izinkan Mulai Lembur Kapan Saja (Tanpa tunggu jam pulang)
+            </label>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%;">Simpan Perubahan</button>
+    </form>
+</div>
 
                <div class="page" id="page-admin-dashboard">
     <div class="dashboard-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
