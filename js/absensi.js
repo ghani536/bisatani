@@ -72,13 +72,13 @@ async renderButtons() {
     container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
 
     try {
+        // Kita tambahkan cache buster (_t) supaya dia gak baca data lama
         const [statusRes, settingsRes] = await Promise.all([
-            api.get('getAttendanceStatus', { userId: auth.user.id }),
-            api.get('getSettings')
+            api.get('getAttendanceStatus', { userId: auth.user.id, _t: Date.now() }),
+            api.get('getSettings', { _t: Date.now() })
         ]);
 
-        // --- LAMPU INDIKATOR (CEK DI F12) ---
-        console.log("CEK DATA DARI GOOGLE SHEETS:", settingsRes);
+        console.log("DATA SETTINGS TERBARU:", settingsRes);
 
         if (settingsRes && settingsRes.success) {
             this.settingsCache = settingsRes.data;
@@ -91,24 +91,21 @@ async renderButtons() {
 
         const config = this.settingsCache || {};
         
-        // 1. Ambil Jam Sekarang (Contoh: "13:55")
         const now = new Date();
         const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                        now.getMinutes().toString().padStart(2, '0');
         
-        // 2. AMBIL DARI SHEET (Cek 2 kemungkinan nama key: jam_lembur_min atau jam_mulai_lembur)
-        let rawJam = config.jam_lembur_min || config.jam_mulai_lembur || "17:00";
+        // --- PERBAIKAN DI SINI: GANTI CADANGAN KE 13:00 ---
+        let rawJam = config.jam_lembur_min || config.jam_mulai_lembur || "13:00";
         
-        // Bersihkan format (Ambil cuma HH:mm)
-        let jamMinLembur = "17:00";
+        let jamMinLembur = "13:00"; // Cadangan utama jadi jam 1 siang
         const match = String(rawJam).match(/\d{1,2}:\d{2}/);
         if (match) {
             let [h, m] = match[0].split(':');
             jamMinLembur = h.padStart(2, '0') + ":" + m;
         }
 
-        // TAMPILKAN DI CONSOLE BIAR KELIHATAN SALAHNYA DIMANA
-        console.log(`KOMPARASI JAM -> Sekarang: ${jamNow} | Syarat Lembur: ${jamMinLembur}`);
+        console.log(`KOMPARASI -> Sekarang: ${jamNow} | Syarat: ${jamMinLembur}`);
 
         let html = '';
 
@@ -123,7 +120,6 @@ async renderButtons() {
                 html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
             }
 
-            // BANDINGKAN JAM
             const isReadyLembur = (jamNow >= jamMinLembur);
 
             if (isReadyLembur) {
