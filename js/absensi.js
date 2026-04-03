@@ -65,70 +65,77 @@ const absensi = {
     },
 
     // --- PERBAIKAN TOMBOL: RESET HARIAN & FIX JAM LEMBUR ---
-    async renderButtons() {
-        const container = document.getElementById('attendance-btns');
-        if (!container) return;
+async renderButtons() {
+    const container = document.getElementById('attendance-btns');
+    if (!container) return;
 
-        container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
+    container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
 
-        try {
-            const [statusRes, settingsRes] = await Promise.all([
-                api.get('getAttendanceStatus', { userId: auth.user.id }),
-                api.get('getSettings')
-            ]);
+    try {
+        const [statusRes, settingsRes] = await Promise.all([
+            api.get('getAttendanceStatus', { userId: auth.user.id }),
+            api.get('getSettings')
+        ]);
 
-            if (settingsRes && settingsRes.success) this.settingsCache = settingsRes.data;
+        if (settingsRes && settingsRes.success) this.settingsCache = settingsRes.data;
 
-            const lastData = (statusRes && statusRes.success) ? statusRes.data : null;
-            const todayStr = statusRes.today;
-            const isActionToday = (lastData && lastData.date === todayStr);
-            const lastType = isActionToday ? lastData.type : null; 
+        const lastData = (statusRes && statusRes.success) ? statusRes.data : null;
+        const todayStr = statusRes.today;
+        const isActionToday = (lastData && lastData.date === todayStr);
+        const lastType = isActionToday ? lastData.type : null; 
 
-            const config = this.settingsCache || {};
-            const now = new Date();
-            const jamNow = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-            
-            // NORMALISASI JAM LEMBUR: Biar jam 13:00 terdeteksi beneran jam 13
-            let jamMinLembur = (config.jam_lembur_min || "17:00").trim();
-            // Jika di Sheets 13:00:00, potong jadi 13:00
-            if (jamMinLembur.includes(":")) {
-                let p = jamMinLembur.split(":");
-                jamMinLembur = p[0].padStart(2, '0') + ":" + p[1].padStart(2, '0');
-            }
+        const config = this.settingsCache || {};
+        
+        // 1. Ambil Jam Sekarang (Contoh: "13:45")
+        const now = new Date();
+        const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
+                       now.getMinutes().toString().padStart(2, '0');
+        
+        // 2. NORMALISASI JAM SETTING (Obat Mujarab)
+        let rawJamLembur = config.jam_lembur_min || "17:00";
+        let jamMinLembur = "17:00"; // Default
 
-            let html = '';
-
-            if (!lastType) {
-                // BELUM ABSEN HARI INI
-                html = `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
-            } 
-            else if (lastType === 'MASUK' || lastType === 'SELESAI_LEMBUR' || lastType === 'PULANG') {
-                
-                if (lastType === 'PULANG') {
-                    html += `<div style="text-align:center; padding:15px; background:#dcfce7; color:#166534; border-radius:12px; font-weight:600; margin-bottom:15px; border: 1px solid #bdfdc6;"><i class="fas fa-check-circle"></i> Tugas Utama Selesai</div>`;
-                } else {
-                    html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
-                }
-
-                // CEK AKTIVASI LEMBUR
-                const isReadyLembur = (jamNow >= jamMinLembur);
-
-                if (isReadyLembur) {
-                    html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
-                } else {
-                    html += `<button disabled style="background:#cbd5e1; color:#94a3b8; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:not-allowed;"><i class="fas fa-lock"></i> LEMBUR (Aktif ${jamMinLembur})</button>`;
-                }
-            } 
-            else if (lastType === 'MULAI_LEMBUR') {
-                html = `<button onclick="absensi.submit('SELESAI_LEMBUR')" class="btn-selesai-lembur" style="background:#0ea5e9; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-check-double"></i> SELESAI LEMBUR</button>`;
-            }
-
-            container.innerHTML = html;
-        } catch (e) { 
-            console.error("Render Error:", e);
-            container.innerHTML = '<button onclick="location.reload()" class="btn-primary" style="width:100%; padding:15px; border-radius:12px;">Gagal Sinkron, Klik untuk Coba Lagi</button>'; 
+        // Jika data dari Google berantakan, kita peras pakai Regex untuk ambil angka saja
+        const match = String(rawJamLembur).match(/\d{1,2}:\d{2}/);
+        if (match) {
+            let [h, m] = match[0].split(':');
+            jamMinLembur = h.padStart(2, '0') + ":" + m;
         }
-    },
+
+        console.log(`DEBUG JAM: Sekarang(${jamNow}) vs Setting(${jamMinLembur})`);
+
+        let html = '';
+
+        if (!lastType) {
+            html = `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
+        } 
+        else if (lastType === 'MASUK' || lastType === 'SELESAI_LEMBUR' || lastType === 'PULANG') {
+            
+            if (lastType === 'PULANG') {
+                html += `<div style="text-align:center; padding:15px; background:#dcfce7; color:#166534; border-radius:12px; font-weight:600; margin-bottom:15px; border: 1px solid #bdfdc6;"><i class="fas fa-check-circle"></i> Tugas Utama Selesai</div>`;
+            } else {
+                html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
+            }
+
+            // 3. BANDINGKAN: Teks vs Teks (Pasti Akurat)
+            const isReadyLembur = (jamNow >= jamMinLembur);
+
+            if (isReadyLembur) {
+                html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
+            } else {
+                html += `<button disabled style="background:#cbd5e1; color:#94a3b8; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:not-allowed;"><i class="fas fa-lock"></i> LEMBUR (Aktif ${jamMinLembur})</button>`;
+            }
+        } 
+        else if (lastType === 'MULAI_LEMBUR') {
+            html = `<button onclick="absensi.submit('SELESAI_LEMBUR')" class="btn-selesai-lembur" style="background:#0ea5e9; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-check-double"></i> SELESAI LEMBUR</button>`;
+        }
+
+        container.innerHTML = html;
+    } catch (e) { 
+        console.error("Render Error:", e);
+        container.innerHTML = '<button onclick="location.reload()" class="btn-primary" style="width:100%; padding:15px;">Koneksi Error, Refresh</button>'; 
+    }
+},
 
     async submit(type) {
         if (!this.location) return alert("GPS belum stabil, silakan tunggu atau refresh halaman!");
