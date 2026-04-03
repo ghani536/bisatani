@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi Engine PT. BISATANI
- * Versi: Final Test (Daily Reset, Locked Overtime & Farewell Message)
+ * Versi: Final Test (Fix Jam Lembur, Debug Mode & Farewell Message)
  */
 const absensi = {
     stream: null,
@@ -72,9 +72,11 @@ const absensi = {
 
             const config = this.settingsCache || {};
             const now = new Date();
+            // Ambil jam sekarang format HH:mm
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                            now.getMinutes().toString().padStart(2, '0');
             
+            // Proses Jam Lembur dari Setting (Regex buat bersihin data jam)
             let rawJam = config.jam_lembur_min || config.jam_mulai_lembur || "17:00";
             let jamMinLembur = "17:00";
             const match = String(rawJam).match(/\d{1,2}:\d{2}/);
@@ -83,16 +85,22 @@ const absensi = {
                 jamMinLembur = h.padStart(2, '0') + ":" + m;
             }
 
-            console.log(`KOMPARASI -> Sekarang: ${jamNow} | Syarat: ${jamMinLembur}`);
+            // --- LOG DEBUG UNTUK BOS ---
+            console.log("--- PENGECEKAN JAM LEMBUR ---");
+            console.log("Jam Sekarang:", jamNow);
+            console.log("Jam Syarat Lembur:", jamMinLembur);
+            console.log("Status Terakhir:", lastType);
+            console.log("Boleh Klik Lembur?", jamNow >= jamMinLembur);
+            console.log("-----------------------------");
 
             let html = '';
 
             if (!lastType) {
-                // 1. BELUM ABSEN MASUK
+                // 1. BELUM ABSEN SAMA SEKALI
                 html = `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
             } 
             else if (lastType === 'SELESAI_LEMBUR') {
-                // 2. SUDAH SELESAI LEMBUR (UCAPAN TERIMA KASIH)
+                // 2. SUDAH SELESAI LEMBUR (BANNER UCAPAN)
                 html = `
                     <div style="text-align:center; padding:20px; background:#f0f9ff; color:#0369a1; border-radius:12px; border: 1px solid #bae6fd;">
                         <i class="fas fa-heart" style="font-size:2rem; color:#0ea5e9; margin-bottom:10px;"></i><br>
@@ -109,7 +117,9 @@ const absensi = {
                     html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
                 }
 
+                // Cek apakah waktu sudah memenuhi syarat lembur
                 const isReadyLembur = (jamNow >= jamMinLembur);
+
                 if (isReadyLembur) {
                     html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
                 } else {
