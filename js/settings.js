@@ -21,7 +21,7 @@ const settings = {
         }
     },
 
-    fillForm() {
+fillForm() {
     const fields = {
         'set-jam-masuk': 'jam_masuk',
         'set-jam-pulang': 'jam_pulang',
@@ -30,28 +30,44 @@ const settings = {
         'set-late-rate': 'late_rate'
     };
 
+    console.log("Data mentah dari server:", this.data);
+
     for (let id in fields) {
         const el = document.getElementById(id);
         const key = fields[id];
-        let value = this.data[key];
+        let val = this.data[key];
 
         if (el) {
-            if (el.type === 'time' && value) {
-                // PAKSA POTONG: Ambil cuma HH:mm (misal "08:00:00" jadi "08:00")
-                // Ini obat mujarab buat input type="time" yang mogok
-                const match = String(value).match(/\d{2}:\d{2}/);
-                el.value = match ? match[0] : "";
-            } else {
-                el.value = value || "";
+            if (val === undefined || val === null || val === "") {
+                el.value = "";
+                continue;
             }
-            console.log(`Suntik data ke ${id}:`, el.value);
+
+            if (el.type === 'time') {
+                // FORMATTING KHUSUS JAM: Jika "7:30" ubah jadi "07:30"
+                let timeStr = String(val).trim();
+                
+                // Ambil hanya angka dan titik dua
+                timeStr = timeStr.replace(/[^0-9:]/g, "");
+
+                if (timeStr.includes(":")) {
+                    let [h, m] = timeStr.split(":");
+                    // Tambahkan angka 0 di depan jika jam cuma 1 digit (misal 7 jadi 07)
+                    h = h.padStart(2, '0');
+                    m = m.padStart(2, '0');
+                    el.value = `${h}:${m}`;
+                }
+            } else {
+                el.value = val;
+            }
+            console.log(`✅ Berhasil isi ${id} -> ${el.value}`);
         }
     }
-    
-    // Checkbox tetap sama
-    const cbAnytime = document.getElementById('set-ot-anytime');
-    if (cbAnytime) {
-        cbAnytime.checked = (String(this.data.allow_overtime_anytime) === "true");
+
+    // Checkbox
+    const cb = document.getElementById('set-ot-anytime');
+    if (cb) {
+        cb.checked = (String(this.data.allow_overtime_anytime) === "true");
     }
 },
 
