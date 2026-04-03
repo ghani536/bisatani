@@ -12,15 +12,16 @@ const adminEmployees = {
         this.setupDendaOtomatis(); // Aktifkan pendeteksi ketikan gaji
     },
 
-    // --- FUNGSI BARU: HITUNG OTOMATIS SAAT KETIK GAJI ---
+    // --- FUNGSI HITUNG OTOMATIS SAAT KETIK GAJI ---
     setupDendaOtomatis() {
         const inputGaji = document.getElementById('emp-gaji');
-        const inputDenda = document.getElementById('emp-denda'); // Pastikan ID di HTML adalah emp-denda
+        const inputDenda = document.getElementById('emp-denda');
 
         if (inputGaji && inputDenda) {
+            // Menggunakan event 'input' agar perubahan langsung terlihat saat mengetik
             inputGaji.addEventListener('input', () => {
                 const gaji = parseFloat(inputGaji.value) || 0;
-                // Rumus PT. BISATANI: Gaji / 25 / 8 / 60
+                // Rumus PT. BISATANI: Gaji / 25 Hari / 8 Jam / 60 Menit
                 const hasilDenda = Math.round(gaji / 25 / 8 / 60);
                 inputDenda.value = hasilDenda;
             });
@@ -32,6 +33,7 @@ const adminEmployees = {
         if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Memuat data...</td></tr>';
 
         try {
+            // Gunakan api.post sesuai dengan struktur yang Bos punya
             const res = await api.post({ action: 'getEmployees' });
             if (res.success) {
                 this.employees = res.data || [];
@@ -75,6 +77,8 @@ const adminEmployees = {
                 document.getElementById('modal-title').textContent = "Tambah Karyawan";
                 document.getElementById('form-employee').reset();
                 document.getElementById('emp-id').value = "";
+                // Reset manual kolom denda agar tidak sisa dari input sebelumnya
+                document.getElementById('emp-denda').value = ""; 
                 document.getElementById('modal-employee').style.display = 'flex';
             };
         }
@@ -139,7 +143,9 @@ const adminEmployees = {
         document.getElementById('emp-role').value = emp.role || 'employee';
         document.getElementById('emp-gaji').value = emp.gaji_pokok;
         document.getElementById('emp-bpjs').value = emp.bpjs;
-        document.getElementById('emp-denda').value = emp.dendatelat || 0; // Tampilkan denda saat edit
+        // PENTING: Tampilkan nilai denda yang sudah ada di database ke form edit
+        document.getElementById('emp-denda').value = emp.dendatelat || 0; 
+        
         document.getElementById('modal-employee').style.display = 'flex';
     },
 
