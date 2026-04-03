@@ -32,33 +32,40 @@ const adminEmployees = {
         } catch (e) { console.error("Error Load:", e); }
     },
 
-    renderTable() {
+renderTable() {
         const tbody = document.getElementById('employees-table-body');
         if (!tbody) return;
         tbody.innerHTML = '';
 
         if (this.employees.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Belum ada data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Data Kosong</td></tr>';
             return;
         }
 
-        const html = this.employees.map((emp, index) => `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="text-align:center; padding:12px;">${index + 1}</td>
-                <td style="padding:12px;"><strong>${emp.name}</strong><br><small>ID: ${emp.id}</small></td>
-                <td style="padding:12px;">${emp.email || '-'}</td>
-                <td style="padding:12px;">${emp.department || '-'}</td>
-                <td style="padding:12px;">${emp.position || '-'}</td>
-                <td style="padding:12px;">Rp ${Number(emp.gaji_pokok || 0).toLocaleString('id-ID')}</td>
-                <td style="padding:12px; text-align:center; color:#ef4444; font-weight:bold;">Rp ${emp.dendatelat || 0}</td>
-                <td style="padding:12px; text-align:center;">
-                    <div style="display:flex; gap:5px; justify-content:center;">
-                        <button onclick="adminEmployees.prepareEdit('${emp.id}')" style="background:#f59e0b; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="adminEmployees.deleteEmployee('${emp.id}')" style="background:#ef4444; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+        const html = this.employees.map((emp, index) => {
+            // PENGAMAN: Jika dendatelat tidak ada di JSON, tampilkan 0 jangan bikin error
+            const dendaVal = emp.dendatelat || 0;
+            const gajiVal = Number(emp.gaji_pokok || 0).toLocaleString('id-ID');
+
+            return `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="text-align:center; padding:12px;">${index + 1}</td>
+                    <td style="padding:12px;"><strong>${emp.name}</strong><br><small>ID: ${emp.id}</small></td>
+                    <td style="padding:12px;">${emp.email || '-'}</td>
+                    <td style="padding:12px;">${emp.department || '-'}</td>
+                    <td style="padding:12px;">${emp.position || '-'}</td>
+                    <td style="padding:12px;">Rp ${gajiVal}</td>
+                    <td style="padding:12px; text-align:center; color:#ef4444; font-weight:bold;">Rp ${dendaVal}</td>
+                    <td style="padding:12px; text-align:center;">
+                        <div style="display:flex; gap:5px; justify-content:center;">
+                            <button onclick="adminEmployees.prepareEdit('${emp.id}')" style="background:#f59e0b; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer;"><i class="fas fa-edit"></i></button>
+                            <button onclick="adminEmployees.deleteEmployee('${emp.id}')" style="background:#ef4444; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
         tbody.innerHTML = html;
     },
 
