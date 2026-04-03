@@ -195,7 +195,7 @@
                         <div class="table-responsive">
                             <table class="reports-table" style="width: 100%;">
                                 <thead style="background: #f8fafc;">
-                                    <tr><th>No</th><th>Nama/ID</th><th>Email</th><th>Dept</th><th>Jabatan</th><th>Gaji</th><th>Aksi</th></tr>
+                                    <tr><th>No</th><th>Nama/ID</th><th>Email</th><th>Dept</th><th>Jabatan</th><th>Gaji</th><th style="color:#ef4444;">Denda/Mnt</th><th>Aksi</th></tr>
                                 </thead>
                                 <tbody id="employees-table-body"></tbody>
                             </table>
@@ -259,76 +259,34 @@
                     </div>
                 </div>
 
-<div class="page" id="page-settings">
-    <form id="form-settings" onsubmit="return false;" style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-        <h4 style="margin-bottom:20px;">Konfigurasi Sistem PT. BISATANI</h4>
-        
-        <div style="margin-bottom:15px;">
-            <label>Jam Masuk Kerja</label>
-            <input type="time" id="set-jam-masuk" class="form-control" required>
-        </div>
+                <div class="page" id="page-settings">
+                    <form id="form-settings" onsubmit="return false;" style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                        <h4 style="margin-bottom:20px;">Konfigurasi Sistem PT. BISATANI</h4>
+                        <div style="margin-bottom:15px;"><label>Jam Masuk Kerja</label><input type="time" id="set-jam-masuk" class="form-control" required></div>
+                        <div style="margin-bottom:15px;"><label>Jam Pulang Kerja</label><input type="time" id="set-jam-pulang" class="form-control" required></div>
+                        <hr>
+                        <div style="margin-bottom:15px;"><label>Upah Lembur (per jam)</label><input type="number" id="set-overtime-rate" class="form-control" placeholder="Contoh: 15000"></div>
+                        <div style="margin-bottom:15px;"><label>Batas Minimal Mulai Lembur</label><input type="time" id="set-jam-lembur-min" class="form-control"></div>
+                        <div style="margin-bottom:20px; padding:10px; background:#f8fafc; border-radius:8px; display:flex; align-items:center; gap:10px;">
+                            <input type="checkbox" id="set-ot-anytime" style="width:20px; height:20px;">
+                            <label for="set-ot-anytime" style="margin:0; font-size:13px; font-weight:600; cursor:pointer;">Izinkan Mulai Lembur Kapan Saja</label>
+                        </div>
+                        <button type="button" id="btn-save-settings" class="btn-primary" style="width:100%;"><i class="fas fa-save"></i> Simpan Perubahan</button>
+                    </form>
+                </div>
 
-        <div style="margin-bottom:15px;">
-            <label>Jam Pulang Kerja</label>
-            <input type="time" id="set-jam-pulang" class="form-control" required>
-        </div>
-
-        <hr>
-
-        <div style="margin-bottom:15px;">
-            <label>Upah Lembur (per jam)</label>
-            <input type="number" id="set-overtime-rate" class="form-control" placeholder="Contoh: 15000">
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label>Batas Minimal Mulai Lembur</label>
-            <input type="time" id="set-jam-lembur-min" class="form-control">
-        </div>
-
-        <div style="margin-bottom:20px; padding:10px; background:#f8fafc; border-radius:8px; display:flex; align-items:center; gap:10px;">
-            <input type="checkbox" id="set-ot-anytime" style="width:20px; height:20px;">
-            <label for="set-ot-anytime" style="margin:0; font-size:13px; font-weight:600; cursor:pointer;">
-                Izinkan Mulai Lembur Kapan Saja (Tanpa tunggu jam pulang)
-            </label>
-        </div>
-
-        <button type="button" id="btn-save-settings" class="btn-primary" style="width:100%;">
-            <i class="fas fa-save"></i> Simpan Perubahan
-        </button>
-    </form>
-</div>
-
-               <div class="page" id="page-admin-dashboard">
-    <div class="dashboard-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-        
-        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #6366f1; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Karyawan</span>
-            <h2 id="dash-total-emp" style="margin: 10px 0 0; font-size: 28px; color: #1e293b;">0</h2>
-        </div>
-
-        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Hadir Hari Ini</span>
-            <h2 id="dash-total-presence" style="margin: 10px 0 0; font-size: 28px; color: #1e293b;">0</h2>
-        </div>
-
-        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #f59e0b; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Lembur</span>
-            <h2 id="dash-total-overtime" style="margin: 10px 0 0; font-size: 28px; color: #1e293b;">0 <small style="font-size:14px;">jam</small></h2>
-        </div>
-
-        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #0ea5e9; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Estimasi Payroll</span>
-            <h2 id="dash-total-payroll" style="margin: 10px 0 0; font-size: 22px; color: #1e293b; white-space: nowrap;">Rp 0</h2>
-        </div>
-    </div>
-
-    <div class="dashboard-lower" style="background:#fff; padding:20px; border-radius:12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-        <h4 style="margin: 0 0 15px 0; font-size: 15px; color: #1e293b;"><i class="fas fa-history"></i> Aktivitas Terbaru</h4>
-        <div id="dash-recent-list" style="display: flex; flex-direction: column; gap: 10px;">
-            <p style="color:#94a3b8; font-size:13px; text-align:center; padding: 20px;">Menyinkronkan data...</p>
-        </div>
-    </div>
-</div>
+                <div class="page" id="page-admin-dashboard">
+                    <div class="dashboard-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div class="stat-card" style="border-left: 5px solid #6366f1;"><span style="font-size: 11px;">TOTAL KARYAWAN</span><h2 id="dash-total-emp">0</h2></div>
+                        <div class="stat-card" style="border-left: 5px solid #10b981;"><span style="font-size: 11px;">HADIR HARI INI</span><h2 id="dash-total-presence">0</h2></div>
+                        <div class="stat-card" style="border-left: 5px solid #f59e0b;"><span style="font-size: 11px;">TOTAL LEMBUR</span><h2 id="dash-total-overtime">0</h2></div>
+                        <div class="stat-card" style="border-left: 5px solid #0ea5e9;"><span style="font-size: 11px;">ESTIMASI PAYROLL</span><h2 id="dash-total-payroll">Rp 0</h2></div>
+                    </div>
+                    <div class="dashboard-lower" style="background:#fff; padding:20px; border-radius:12px;">
+                        <h4><i class="fas fa-history"></i> Aktivitas Terbaru</h4>
+                        <div id="dash-recent-list"><p style="text-align:center; padding: 20px;">Menyinkronkan data...</p></div>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -341,51 +299,30 @@
         </nav>
     </div>
 
-    <div id="modal-slip" class="modal-custom"><div class="modal-content" style="background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px;" id="slip-content"></div></div>
+    <div id="modal-slip" class="modal-custom"><div class="modal-content" id="slip-content"></div></div>
 
-<div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-    <div class="form-group" style="grid-column: span 2;">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">ID KARYAWAN (UNIK)</label>
-        <input type="text" id="emp-id" placeholder="Contoh: 1001" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+    <div id="modal-employee" class="modal-custom">
+        <div class="modal-content" style="background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 500px;">
+            <h3 id="modal-title">Tambah Karyawan</h3>
+            <form id="form-employee">
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group" style="grid-column: span 2;"><label>ID KARYAWAN</label><input type="text" id="emp-id" required></div>
+                    <div class="form-group" style="grid-column: span 2;"><label>NAMA LENGKAP</label><input type="text" id="emp-name" required></div>
+                    <div class="form-group" style="grid-column: span 2;"><label>EMAIL</label><input type="text" id="emp-email" required></div>
+                    <div class="form-group"><label>DEPT</label><input type="text" id="emp-dept"></div>
+                    <div class="form-group"><label>JABATAN</label><input type="text" id="emp-position"></div>
+                    <div class="form-group"><label>GAJI POKOK</label><input type="number" id="emp-gaji" required></div>
+                    <div class="form-group"><label style="color:#ef4444;">DENDA TELAT / MENIT</label><input type="number" id="emp-denda" readonly style="background:#f8fafc; font-weight:bold; color:#ef4444;"></div>
+                    <div class="form-group"><label>POT. BPJS</label><input type="number" id="emp-bpjs" value="0"></div>
+                    <div class="form-group"><label>ROLE</label><select id="emp-role"><option value="employee">Employee</option><option value="admin">Admin</option></select></div>
+                </div>
+                <div style="margin-top: 25px; display: flex; gap: 10px;">
+                    <button type="submit" style="flex: 1; background: #10b981; color: white; padding: 12px; border-radius: 8px; border:none; font-weight:700; cursor:pointer;">SIMPAN</button>
+                    <button type="button" onclick="document.getElementById('modal-employee').style.display='none'" style="flex: 1; background: #f1f5f9; padding: 12px; border-radius: 8px; border:none; cursor:pointer;">BATAL</button>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="form-group" style="grid-column: span 2;">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">NAMA LENGKAP</label>
-        <input type="text" id="emp-name" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
-    </div>
-    <div class="form-group" style="grid-column: span 2;">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">EMAIL / USERNAME</label>
-        <input type="text" id="emp-email" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
-    </div>
-    <div class="form-group">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">DEPARTEMEN</label>
-        <input type="text" id="emp-dept" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
-    </div>
-    <div class="form-group">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">JABATAN</label>
-        <input type="text" id="emp-position" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
-    </div>
-    
-    <div class="form-group">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">GAJI POKOK</label>
-        <input type="number" id="emp-gaji" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;" placeholder="Input Angka">
-    </div>
-    <div class="form-group">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">DENDA TELAT / MENIT</label>
-        <input type="number" id="emp-denda" readonly style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; color: #ef4444; font-weight: bold;" placeholder="Otomatis">
-    </div>
-    
-    <div class="form-group">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">POT. BPJS</label>
-        <input type="number" id="emp-bpjs" value="0" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
-    </div>
-    <div class="form-group">
-        <label style="font-size: 11px; font-weight: 700; color: #64748b;">ROLE LOGIN</label>
-        <select id="emp-role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
-            <option value="employee">Employee</option>
-            <option value="admin">Admin</option>
-        </select>
-    </div>
-</div>
 
     <script src="js/api.js"></script>
     <script src="js/main.js"></script>
