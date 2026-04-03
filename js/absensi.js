@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi Engine PT. BISATANI
- * Versi: Tombol Lembur Terkunci (Locked) Sebelum Waktunya
+ * Versi: Daily Reset & Locked Overtime
  */
 const absensi = {
     stream: null,
@@ -54,7 +54,7 @@ const absensi = {
         const container = document.getElementById('attendance-btns');
         if (!container) return;
 
-        container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Memeriksa status...</div>';
+        container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Status...</div>';
 
         try {
             const [statusRes, settingsRes] = await Promise.all([
@@ -64,25 +64,29 @@ const absensi = {
 
             if (settingsRes && settingsRes.success) this.settingsCache = settingsRes.data;
 
-            const lastType = (statusRes && statusRes.success && statusRes.data) ? statusRes.data.type : null;
-            const config = this.settingsCache || {};
+            // Logika Daily Reset: Ambil data tanggal dari server
+            const lastData = (statusRes && statusRes.success) ? statusRes.data : null;
+            const todayStr = statusRes.today; // Tanggal hari ini dari server (yyyy-MM-dd)
             
-            // Ambil Waktu Sekarang (Format HH:mm)
+            // Cek apakah aksi terakhir terjadi HARI INI
+            const isActionToday = (lastData && lastData.date === todayStr);
+            const lastType = isActionToday ? lastData.type : null; 
+
+            const config = this.settingsCache || {};
             const now = new Date();
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
             
             let html = '';
 
-            // --- LOGIKA TOMBOL PT. BISATANI ---
-            
+            // 1. JIKA BELUM ABSEN MASUK HARI INI (Solusi buat Andi)
             if (!lastType) {
-                // BELUM ABSEN MASUK
                 html = `<button onclick="absensi.submit('MASUK')" class="btn-masuk" style="background:#10b981; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-sign-in-alt"></i> ABSEN MASUK</button>`;
             } 
+            
+            // 2. JIKA SUDAH MASUK, SELESAI LEMBUR, ATAU SUDAH PULANG (HARI INI)
             else if (lastType === 'MASUK' || lastType === 'SELESAI_LEMBUR' || lastType === 'PULANG') {
-                // JIKA STATUS MASUK, SELESAI LEMBUR, ATAU PULANG
                 
-                // 1. Tampilkan status Pulang jika memang sudah klik pulang
+                // Tampilkan banner "Sudah Pulang" jika tipe-nya memang PULANG
                 if (lastType === 'PULANG') {
                     html += `
                         <div style="text-align:center; padding:15px; background:#dcfce7; color:#166534; border-radius:12px; font-weight:600; margin-bottom:15px; border: 1px solid #bdfdc6;">
@@ -90,30 +94,28 @@ const absensi = {
                         </div>
                     `;
                 } else {
-                    // Jika belum pulang, tampilkan tombol pulang
                     html += `
                         <button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>
                     `;
                 }
 
-                // 2. Tombol Mulai Lembur (Logika Kunci/Lock)
-                const jamMinLembur = config.jam_lembur_min || "17:00";
+                // Logika Tombol Lembur (Tetap Muncul Tapi Terkunci jika belum jamnya)
+                const jamMinLembur = (config.jam_lembur_min || "17:00").trim();
                 const isReadyLembur = (jamNow >= jamMinLembur);
 
                 if (isReadyLembur) {
-                    // Tombol Aktif
                     html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
                 } else {
-                    // Tombol Terkunci (Disabled)
                     html += `
-                        <button disabled class="btn-lembur-locked" style="background:#cbd5e1; color:#94a3b8; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:not-allowed;">
+                        <button disabled style="background:#cbd5e1; color:#94a3b8; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:not-allowed;">
                             <i class="fas fa-lock"></i> MULAI LEMBUR (Aktif jam ${jamMinLembur})
                         </button>
                     `;
                 }
             } 
+            
+            // 3. JIKA SEDANG LEMBUR
             else if (lastType === 'MULAI_LEMBUR') {
-                // Sedang Lembur
                 html = `<button onclick="absensi.submit('SELESAI_LEMBUR')" class="btn-selesai-lembur" style="background:#0ea5e9; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-check-double"></i> SELESAI LEMBUR</button>`;
             }
 
