@@ -272,22 +272,37 @@
                     </div>
                 </div>
 
-                <div class="page" id="page-admin-dashboard">
-                    <div class="dashboard-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #6366f1; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Karyawan</span>
-                            <h2 id="dash-total-emp" style="margin: 10px 0 0; font-size: 32px;">0</h2>
-                        </div>
-                        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Hadir Hari Ini</span>
-                            <h2 id="dash-total-presence" style="margin: 10px 0 0; font-size: 32px;">0</h2>
-                        </div>
-                    </div>
-                    <div class="dashboard-lower" style="margin-top:20px; background:#fff; padding:20px; border-radius:12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                        <h4><i class="fas fa-history"></i> Log Aktivitas Terbaru</h4>
-                        <div id="dash-recent-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
-                    </div>
-                </div>
+               <div class="page" id="page-admin-dashboard">
+    <div class="dashboard-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        
+        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #6366f1; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Karyawan</span>
+            <h2 id="dash-total-emp" style="margin: 10px 0 0; font-size: 28px; color: #1e293b;">0</h2>
+        </div>
+
+        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Hadir Hari Ini</span>
+            <h2 id="dash-total-presence" style="margin: 10px 0 0; font-size: 28px; color: #1e293b;">0</h2>
+        </div>
+
+        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #f59e0b; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Lembur</span>
+            <h2 id="dash-total-overtime" style="margin: 10px 0 0; font-size: 28px; color: #1e293b;">0 <small style="font-size:14px;">jam</small></h2>
+        </div>
+
+        <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 12px; border-left: 5px solid #0ea5e9; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Estimasi Payroll</span>
+            <h2 id="dash-total-payroll" style="margin: 10px 0 0; font-size: 22px; color: #1e293b; white-space: nowrap;">Rp 0</h2>
+        </div>
+    </div>
+
+    <div class="dashboard-lower" style="background:#fff; padding:20px; border-radius:12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <h4 style="margin: 0 0 15px 0; font-size: 15px; color: #1e293b;"><i class="fas fa-history"></i> Aktivitas Terbaru</h4>
+        <div id="dash-recent-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <p style="color:#94a3b8; font-size:13px; text-align:center; padding: 20px;">Menyinkronkan data...</p>
+        </div>
+    </div>
+</div>
             </div>
         </main>
 
