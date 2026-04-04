@@ -1,6 +1,6 @@
 /**
- * Portal Karyawan - Payroll Engine PT. BISATANI
- * Fitur: Denda Menit Otomatis, Cetak PDF/Print, & Navigasi Slip
+ * js/payroll.js - PT. BISATANI
+ * Versi Final: Fix Denda Slip & Print Support
  */
 const payroll = {
     config: {},
@@ -9,7 +9,6 @@ const payroll = {
     calculatedData: [],
 
     init() {
-        console.log("Payroll: Engine Aktif...");
         const yearInput = document.getElementById('payroll-year');
         const monthInput = document.getElementById('payroll-month');
         if (yearInput) yearInput.value = new Date().getFullYear();
@@ -19,7 +18,6 @@ const payroll = {
     async calculate() {
         const btn = document.querySelector('button[onclick="payroll.calculate()"]');
         const tbody = document.getElementById('payroll-table-body');
-        
         try {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
@@ -41,14 +39,11 @@ const payroll = {
             const startDate = new Date(year, month - 1, 26, 0, 0, 0);
             const endDate = new Date(year, month, 25, 23, 59, 59);
 
-            this.calculatedData = this.employees.map(emp => {
-                return this.calculateSingleEmployee(emp, startDate, endDate);
-            });
-
+            this.calculatedData = this.employees.map(emp => this.calculateSingleEmployee(emp, startDate, endDate));
             this.renderTable(this.calculatedData);
 
         } catch (e) {
-            alert("Terjadi kesalahan: " + e.message);
+            alert("Error: " + e.message);
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-calculator"></i> Hitung';
@@ -61,30 +56,36 @@ const payroll = {
             return String(a.userId) === String(emp.id) && tgl >= start && tgl <= end;
         });
 
-        const tarifLembur = parseInt(this.config.overtime_rate || 0);
-        // PASTIKAN: r[12] di Code.gs sudah dikirim sebagai dendatelat
-        const dendaPerMenit = parseFloat(emp.dendatelat || 0); 
+        // AMBIL DENDA PER MENIT (Prioritas: Database, Cadangan: Hitung Manual)
+        let dendaPerMenit = parseFloat(emp.dendatelat || 0);
+        if (dendaPerMenit <= 0) {
+            const gaji = parseFloat(emp.gaji_pokok || 0);
+            dendaPerMenit = Math.round(gaji / 25 / 8 / 60);
+        }
 
         let hadirCount = 0;
-        let jamLemburTotal = 0;
         let totalMenitTelat = 0;
+        let jamLemburTotal = 0;
 
-        userLogs.filter(l => l.type === 'MASUK').forEach(log => {
-            hadirCount++;
-            if (log.statusTelat && log.statusTelat !== "0" && log.statusTelat !== "-") {
-                totalMenitTelat += parseInt(log.statusTelat) || 0;
+        userLogs.forEach(log => {
+            if (log.type === 'MASUK') {
+                hadirCount++;
+                if (log.statusTelat && log.statusTelat !== "0" && log.statusTelat !== "-") {
+                    totalMenitTelat += parseInt(log.statusTelat) || 0;
+                }
             }
-        });
-
-        userLogs.filter(l => l.type === 'SELESAI_LEMBUR').forEach(log => {
-            jamLemburTotal += parseFloat(log.totalHours || 0);
+            if (log.type === 'SELESAI_LEMBUR') {
+                jamLemburTotal += parseFloat(log.totalHours || 0);
+            }
         });
 
         const gapok = parseInt(emp.gaji_pokok || 0);
         const bpjs = parseInt(emp.bpjs || 0);
-        const bonusLembur = Math.round(jamLemburTotal * tarifLembur);
-        const totalDendaTelat = Math.round(totalMenitTelat * dendaPerMenit);
-        const takeHomePay = (gapok + bonusLembur) - (bpjs + totalDendaTelat);
+        const bonusLembur = Math.round(jamLemburTotal * parseInt(this.config.overtime_rate || 0));
+        
+        // HITUNG NOMINAL DENDA
+        const nominalDenda = Math.round(totalMenitTelat * dendaPerMenit);
+        const totalGaji = (gapok + bonusLembur) - (bpjs + nominalDenda);
 
         return {
             id: emp.id,
@@ -94,9 +95,9 @@ const payroll = {
             lemburJam: jamLemburTotal,
             bonusLembur: bonusLembur,
             menitTelat: totalMenitTelat,
-            dendaTelat: totalDendaTelat,
+            dendaTelat: nominalDenda, // Pastikan ini terisi
             bpjs: bpjs,
-            totalGaji: takeHomePay
+            totalGaji: totalGaji
         };
     },
 
@@ -105,14 +106,14 @@ const payroll = {
         if (!tbody) return;
         tbody.innerHTML = data.map(p => `
             <tr>
-                <td style="padding:12px;"><strong>${p.name}</strong><br><small>${p.id}</small></td>
+                <td><strong>${p.name}</strong><br><small>${p.id}</small></td>
                 <td>Rp ${p.gapok.toLocaleString('id-ID')}</td>
                 <td style="text-align:center;">${p.hadir} Hari</td>
-                <td style="text-align:center;">${p.lemburJam.toFixed(1)} j</td>
+                <td style="text-align:center;">${p.lemburJam.toFixed(1)}j</td>
                 <td style="color:#10b981;">+${p.bonusLembur.toLocaleString('id-ID')}</td>
                 <td style="color:#ef4444;">-${p.dendaTelat.toLocaleString('id-ID')}<br><small>(${p.menitTelat} m)</small></td>
                 <td style="color:#ef4444;">-${p.bpjs.toLocaleString('id-ID')}</td>
-                <td style="background:#f0fdf4; font-weight:700;">Rp ${p.totalGaji.toLocaleString('id-ID')}</td>
+                <td style="background:#f0fdf4; font-weight:bold;">Rp ${p.totalGaji.toLocaleString('id-ID')}</td>
                 <td><button onclick="payroll.showSlip('${p.id}')" style="background:#6366f1; color:white; border:none; padding:6px; border-radius:6px; cursor:pointer;"><i class="fas fa-file-invoice"></i> Slip</button></td>
             </tr>
         `).join('');
@@ -125,13 +126,12 @@ const payroll = {
         const modal = document.getElementById('modal-slip');
         const content = document.getElementById('slip-content');
         const bulanNama = document.getElementById('payroll-month').options[document.getElementById('payroll-month').selectedIndex].text;
-        const tahun = document.getElementById('payroll-year').value;
 
         content.innerHTML = `
-            <div id="printable-slip" style="padding: 10px;">
+            <div id="printable-area">
                 <div style="text-align:center; border-bottom:2px dashed #eee; padding-bottom:10px; margin-bottom:15px;">
                     <h3 style="margin:0; color:#10b981;">PT. BISATANI</h3>
-                    <small style="color:#64748b;">Slip Gaji: ${bulanNama} ${tahun}</small>
+                    <small>Slip Gaji: ${bulanNama} ${document.getElementById('payroll-year').value}</small>
                 </div>
                 <table style="width:100%; border-collapse:collapse; font-size:13px; font-family:monospace;">
                     <tr><td>NAMA</td><td>: <strong>${data.name}</strong></td></tr>
@@ -149,12 +149,8 @@ const payroll = {
                 </table>
             </div>
             <div style="margin-top:20px; display:flex; gap:10px;" class="no-print">
-                <button onclick="window.print()" style="flex:1; background:#10b981; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;">
-                    <i class="fas fa-print"></i> Cetak / PDF
-                </button>
-                <button onclick="document.getElementById('modal-slip').style.display='none'" style="flex:1; background:#94a3b8; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer;">
-                    <i class="fas fa-arrow-left"></i> Kembali
-                </button>
+                <button onclick="window.print()" style="flex:1; background:#10b981; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;"><i class="fas fa-print"></i> Cetak</button>
+                <button onclick="document.getElementById('modal-slip').style.display='none'" style="flex:1; background:#94a3b8; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer;"><i class="fas fa-times"></i> Tutup</button>
             </div>
         `;
         modal.style.display = 'flex';
