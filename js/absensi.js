@@ -58,8 +58,6 @@ async renderButtons() {
         container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
 
         try {
-            // JURUS PAMUNGKAS: Tambahkan angka acak unik di setiap request
-            // agar Google terpaksa memberikan data terbaru dari Spreadsheet
             const cacheBuster = Date.now();
             const [statusRes, settingsRes] = await Promise.all([
                 api.get(`getAttendanceStatus&cb=${cacheBuster}`, { userId: auth.user.id }),
@@ -78,8 +76,10 @@ async renderButtons() {
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                            now.getMinutes().toString().padStart(2, '0');
             
-            // Ambil jam lembur dari cache terbaru
-            let rawJam = config.jam_lembur_min || config.jam_mulai_lembur || "17:00";
+            // --- REVISI RADAR PENCARIAN JAM LEMBUR ---
+            // Mencoba mencari kunci jamlemburmin, jammulailembur, atau jamkeluar
+            let rawJam = config['jammulailembur'] || config['jamkeluar'] || config['jamlemburmin'] || "17:00";
+            
             let jamMinLembur = "17:00";
             const match = String(rawJam).match(/\d{1,2}:\d{2}/);
             if (match) {
@@ -87,10 +87,10 @@ async renderButtons() {
                 jamMinLembur = h.padStart(2, '0') + ":" + m;
             }
 
-            console.log("--- PENGECEKAN JAM LEMBUR (FRESH DATA) ---");
-            console.log("Jam Sekarang:", jamNow);
-            console.log("Jam Syarat Lembur:", jamMinLembur);
-            console.log("Boleh Klik Lembur?", jamNow >= jamMinLembur);
+            console.log("--- DEBUG PT. BISATANI ---");
+            console.log("Setting Terdeteksi:", rawJam);
+            console.log("Jam Patokan:", jamMinLembur);
+            console.log("Jam HP:", jamNow);
 
             let html = '';
 
@@ -113,6 +113,7 @@ async renderButtons() {
                     html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
                 }
 
+                // AKTIFKAN TOMBOL JIKA SUDAH LEWAT JAM PATOKAN
                 if (jamNow >= jamMinLembur) {
                     html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
                 } else {
