@@ -1,6 +1,6 @@
 /**
  * js/payroll.js - PT. BISATANI
- * Versi Final: Fix Bonus Lembur, Fix Denda Otomatis & Slip Gaji Support (2 Decimal)
+ * Versi Final: Fix Desimal Lembur (Anti Pembulatan ke 0.0)
  */
 const payroll = {
     config: {},
@@ -36,7 +36,6 @@ const payroll = {
             this.attendance = resAtt.data || [];
             this.config = resCfg.data || {};
 
-            // Range Tanggal: 26 Bulan Lalu s/d 25 Bulan Ini
             const startDate = new Date(year, month - 1, 26, 0, 0, 0);
             const endDate = new Date(year, month, 25, 23, 59, 59);
 
@@ -57,12 +56,10 @@ const payroll = {
             return String(a.userId) === String(emp.id) && tgl >= start && tgl <= end;
         });
 
-        // 1. TARIF LEMBUR (Dari Settings, default 10.000 jika kosong)
         const tarifLembur = parseInt(this.config.overtime_rate || 10000);
-
-        // 2. DENDA PER MENIT (Database atau Hitung Manual)
         const gajiPokok = parseFloat(emp.gaji_pokok || 0);
         let dendaPerMenit = parseFloat(emp.dendatelat || 0);
+
         if (dendaPerMenit <= 0 && gajiPokok > 0) {
             dendaPerMenit = Math.round(gajiPokok / 25 / 8 / 60);
         }
@@ -78,22 +75,16 @@ const payroll = {
                     totalMenitTelat += parseInt(log.statusTelat) || 0;
                 }
             }
-            // HITUNG JAM LEMBUR DARI TOTALHOURS
+            // FORCE PARSE DECIMAL: Mengatasi 0.03j agar tidak hilang
             if (log.type === 'SELESAI_LEMBUR') {
-                const jam = parseFloat(log.totalHours || 0);
-                jamLemburTotal += jam;
+                let jamRaw = String(log.totalHours || "0").replace(',', '.');
+                jamLemburTotal += parseFloat(jamRaw);
             }
         });
 
         const bpjs = parseInt(emp.bpjs || 0);
-        
-        // HITUNG NOMINAL BONUS LEMBUR
         const bonusLembur = Math.round(jamLemburTotal * tarifLembur);
-        
-        // HITUNG NOMINAL AKHIR DENDA
         const nominalDenda = Math.round(totalMenitTelat * dendaPerMenit);
-        
-        // RUMUS AKHIR
         const totalGaji = (gajiPokok + bonusLembur) - (bpjs + nominalDenda);
 
         return {
@@ -118,7 +109,7 @@ const payroll = {
                 <td style="padding:12px;"><strong>${p.name}</strong><br><small style="color:#64748b;">ID: ${p.id}</small></td>
                 <td>Rp ${p.gapok.toLocaleString('id-ID')}</td>
                 <td style="text-align:center;">${p.hadir} Hari</td>
-                <td style="text-align:center;">${p.lemburJam.toFixed(2)}j</td>
+                <td style="text-align:center; font-weight:bold; color:#2563eb;">${p.lemburJam.toFixed(2)}j</td>
                 <td style="color:#10b981; font-weight:600;">+${p.bonusLembur.toLocaleString('id-ID')}</td>
                 <td style="color:#ef4444;">-${p.dendaTelat.toLocaleString('id-ID')}<br><small>(${p.menitTelat} m)</small></td>
                 <td style="color:#ef4444;">-${p.bpjs.toLocaleString('id-ID')}</td>
@@ -145,7 +136,7 @@ const payroll = {
             <div id="printable-area" style="padding: 15px; background: white;">
                 <div style="text-align:center; border-bottom:2px dashed #334155; padding-bottom:15px; margin-bottom:20px;">
                     <h2 style="margin:0; color:#10b981; letter-spacing: 2px;">PT. BISATANI</h2>
-                    <p style="margin:5px 0 0; color:#64748b; font-size:12px;">SLIP GAJI KARYAWAN PERIODE ${bulanNama.toUpperCase()} ${tahun}</p>
+                    <p style="margin:5px 0; color:#64748b; font-size:12px;">SLIP GAJI KARYAWAN PERIODE ${bulanNama.toUpperCase()} ${tahun}</p>
                 </div>
                 
                 <table style="width:100%; border-collapse:collapse; font-size:14px; font-family:'Courier New', Courier, monospace;">
@@ -165,17 +156,17 @@ const payroll = {
                     </tr>
                 </table>
 
-                <div style="margin-top:30px; text-align:center; font-size:11px; color:#94a3b8; font-style:italic;">
+                <div style="margin-top:30px; text-align:center; font-size:11px; color:#94a3b8;">
                     Terima kasih atas dedikasi Anda.<br>
                     Dicetak pada: ${new Date().toLocaleString('id-ID')}
                 </div>
             </div>
 
             <div style="margin-top:25px; display:flex; gap:12px;" class="no-print">
-                <button onclick="window.print()" style="flex:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <button onclick="window.print()" style="flex:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:700;">
                     <i class="fas fa-print"></i> CETAK PDF
                 </button>
-                <button onclick="document.getElementById('modal-slip').style.display='none'" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:600;">
+                <button onclick="document.getElementById('modal-slip').style.display='none'" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:12px; border-radius:10px; cursor:pointer;">
                     <i class="fas fa-times"></i> TUTUP
                 </button>
             </div>
