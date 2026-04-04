@@ -30,81 +30,134 @@
     </style>
 </head>
 <body>
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="login-container" class="login-container">
+        <div class="login-form-container">
+            <h1 style="text-align:center;">PT. BISATANI</h1>
+            <form id="login-form" onsubmit="return false;">
+                <input type="text" id="login-email" placeholder="ID / Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+        </div>
+    </div>
+
     <div id="app-container" class="app-container hidden">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header"><div class="sidebar-logo"><i class="fas fa-seedling"></i><span class="sidebar-brand">BISATANI</span></div></div>
-            <nav class="sidebar-nav admin-menu" id="admin-menu-nav">
-                <div class="nav-section">
-                    <span class="nav-label">Panel Admin</span>
-                    <ul class="nav-list">
-                        <li class="nav-item" data-page="admin-dashboard"><a href="#" class="nav-link"><i class="fas fa-chart-line"></i><span>Dashboard</span></a></li>
-                        <li class="nav-item active" data-page="employees"><a href="#" class="nav-link"><i class="fas fa-users"></i><span>Data Karyawan</span></a></li>
-                        <li class="nav-item" data-page="attendance-reports"><a href="#" class="nav-link"><i class="fas fa-file-invoice"></i><span>Rekap Absensi</span></a></li>
-                        <li class="nav-item" data-page="payroll-reports"><a href="#" class="nav-link"><i class="fas fa-wallet"></i><span>Payroll</span></a></li>
-                        <li class="nav-item" data-page="settings"><a href="#" class="nav-link"><i class="fas fa-cog"></i><span>Settings</span></a></li>
-                    </ul>
-                </div>
+            
+            <nav class="sidebar-nav employee-menu" id="employee-menu">
+                <ul class="nav-list">
+                    <li class="nav-item active" data-page="dashboard"><a href="#" class="nav-link"><i class="fas fa-home"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item" data-page="absensi"><a href="#" class="nav-link"><i class="fas fa-clock"></i><span>Absensi</span></a></li>
+                </ul>
             </nav>
+
+            <nav class="sidebar-nav admin-menu hidden" id="admin-menu-nav">
+                <ul class="nav-list">
+                    <li class="nav-item" data-page="admin-dashboard"><a href="#" class="nav-link"><i class="fas fa-chart-line"></i><span>Admin Dash</span></a></li>
+                    <li class="nav-item" data-page="employees"><a href="#" class="nav-link"><i class="fas fa-users"></i><span>Data Karyawan</span></a></li>
+                    <li class="nav-item" data-page="attendance-reports"><a href="#" class="nav-link"><i class="fas fa-file-invoice"></i><span>Rekap Absensi</span></a></li>
+                    <li class="nav-item" data-page="payroll-reports"><a href="#" class="nav-link"><i class="fas fa-wallet"></i><span>Payroll</span></a></li>
+                    <li class="nav-item" data-page="settings"><a href="#" class="nav-link"><i class="fas fa-cog"></i><span>Settings</span></a></li>
+                </ul>
+            </nav>
+
             <div class="sidebar-footer">
-                <button class="btn-logout" id="btn-logout" onclick="auth.handleLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+                <button onclick="auth.handleLogout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
         </aside>
 
         <main class="main-content">
             <header class="top-bar">
-                <div class="top-bar-left"><h1 class="page-title" id="page-title">Data Karyawan</h1></div>
+                <h1 class="page-title" id="page-title">Dashboard</h1>
             </header>
 
             <div class="page-content">
-                <div class="page active" id="page-employees">
-                    <div class="employees-container" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h3 style="margin: 0;"><i class="fas fa-users-cog"></i> Management Karyawan</h3>
-                            <button class="btn-primary" id="btn-add-employee" style="background: #10b981; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                                <i class="fas fa-user-plus"></i> Tambah Karyawan
-                            </button>
+                <div class="page active" id="page-dashboard">
+                    <div class="welcome-card"><h2>Halo, <span id="welcome-name">...</span>!</h2></div>
+                </div>
+                
+                <div class="page" id="page-absensi">
+                    <div class="absensi-container" style="text-align:center;">
+                        <div id="live-clock" style="font-size:24px; font-weight:bold;">00:00:00</div>
+                        <div class="camera-box" style="width:280px; height:210px; background:#000; margin:20px auto; border-radius:10px; overflow:hidden;">
+                            <video id="webcam-preview" autoplay playsinline style="width:100%;"></video>
+                        </div>
+                        <div id="attendance-btns"></div>
+                    </div>
+                </div>
+                
+                <div class="page" id="page-employees">
+                    <div class="employees-container" style="padding: 20px; background: #fff; border-radius: 12px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                            <h3>Data Karyawan</h3>
+                            <button id="btn-add-employee" class="btn-primary" style="background:#10b981; border:none; color:#fff; padding:10px; border-radius:8px; cursor:pointer;">+ Tambah</button>
                         </div>
                         <div class="table-responsive">
-                            <table class="reports-table" style="width: 100%; border-collapse: collapse;">
-                                <thead style="background: #f8fafc; text-align: left;">
-                                    <tr>
-                                        <th style="padding: 12px;">No</th>
-                                        <th style="padding: 12px;">Nama/ID</th>
-                                        <th style="padding: 12px;">Email</th>
-                                        <th style="padding: 12px;">Dept</th>
-                                        <th style="padding: 12px;">Jabatan</th>
-                                        <th style="padding: 12px;">Gaji</th>
-                                        <th style="padding: 12px; color:#ef4444;">Denda/Mnt</th>
-                                        <th style="padding: 12px; text-align: center;">Aksi</th>
-                                    </tr>
+                            <table class="reports-table" style="width: 100%;">
+                                <thead>
+                                    <tr><th>No</th><th>Nama/ID</th><th>Email</th><th>Dept</th><th>Jabatan</th><th>Gaji</th><th style="color:#ef4444;">Denda/M</th><th>Aksi</th></tr>
                                 </thead>
                                 <tbody id="employees-table-body"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
+
+                <div class="page" id="page-attendance-reports">
+                    <div class="reports-container" style="padding: 20px; background: #fff;">
+                        <h3>Rekap Absensi</h3>
+                        <tbody id="attendance-reports-body"></tbody>
+                    </div>
                 </div>
+
+                <div class="page" id="page-payroll-reports">
+                    <div class="payroll-container" style="padding: 20px; background: #fff;">
+                        <h3>Payroll Management</h3>
+                        <button onclick="payroll.calculate()">Hitung Gaji</button>
+                        <tbody id="payroll-table-body"></tbody>
+                    </div>
+                </div>
+
+                <div class="page" id="page-settings">
+                    <form id="form-settings" style="padding:20px; background:#fff;">
+                        <h4>Settings Jam Kerja</h4>
+                        <input type="time" id="set-jam-masuk">
+                        <input type="time" id="set-jam-pulang">
+                        <button type="button" id="btn-save-settings">Simpan</button>
+                    </form>
+                </div>
+
+                <div class="page" id="page-admin-dashboard">
+                    <div class="stat-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div class="stat-card">Total Karyawan: <span id="dash-total-emp">0</span></div>
+                        <div class="stat-card">Hadir Hari Ini: <span id="dash-total-presence">0</span></div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
     <div id="modal-employee" class="modal-custom">
-        <div class="modal-content" style="background: white; padding: 25px; border-radius: 15px; width: 95%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <h3 id="modal-title" style="margin-top: 0; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px;">Tambah Karyawan</h3>
+        <div class="modal-content" style="background:white; padding:25px; border-radius:15px; width:90%; max-width:500px;">
+            <h3 id="modal-title">Form Karyawan</h3>
             <form id="form-employee">
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="form-group" style="grid-column: span 2;"><label style="font-size: 11px; font-weight: 700;">ID KARYAWAN</label><input type="text" id="emp-id" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"></div>
-                    <div class="form-group" style="grid-column: span 2;"><label style="font-size: 11px; font-weight: 700;">NAMA LENGKAP</label><input type="text" id="emp-name" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"></div>
-                    <div class="form-group" style="grid-column: span 2;"><label style="font-size: 11px; font-weight: 700;">EMAIL</label><input type="text" id="emp-email" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"></div>
-                    <div class="form-group"><label style="font-size: 11px; font-weight: 700;">DEPT</label><input type="text" id="emp-dept" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"></div>
-                    <div class="form-group"><label style="font-size: 11px; font-weight: 700;">JABATAN</label><input type="text" id="emp-position" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"></div>
-                    <div class="form-group"><label style="font-size: 11px; font-weight: 700;">GAJI POKOK</label><input type="number" id="emp-gaji" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"></div>
-                    <div class="form-group"><label style="font-size: 11px; font-weight: 700; color:#ef4444;">DENDA TELAT / MNT</label><input type="number" id="emp-denda" readonly style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#ef4444; font-weight:bold;"></div>
-                    <div class="form-group"><label style="font-size: 11px; font-weight: 700;">POT. BPJS</label><input type="number" id="emp-bpjs" value="0" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"></div>
-                    <div class="form-group"><label style="font-size: 11px; font-weight: 700;">ROLE</label><select id="emp-role" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;"><option value="employee">Employee</option><option value="admin">Admin</option></select></div>
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="grid-column: span 2;"><label>ID</label><input type="text" id="emp-id" required style="width:100%;"></div>
+                    <div style="grid-column: span 2;"><label>Nama</label><input type="text" id="emp-name" required style="width:100%;"></div>
+                    <div style="grid-column: span 2;"><label>Email</label><input type="text" id="emp-email" required style="width:100%;"></div>
+                    <div><label>Dept</label><input type="text" id="emp-dept" style="width:100%;"></div>
+                    <div><label>Jabatan</label><input type="text" id="emp-position" style="width:100%;"></div>
+                    <div><label>Gaji</label><input type="number" id="emp-gaji" required style="width:100%;"></div>
+                    <div><label style="color:red;">Denda Telat</label><input type="number" id="emp-denda" readonly style="width:100%; background:#eee;"></div>
+                    <div><label>BPJS</label><input type="number" id="emp-bpjs" value="0" style="width:100%;"></div>
+                    <div><label>Role</label><select id="emp-role" style="width:100%;"><option value="employee">Employee</option><option value="admin">Admin</option></select></div>
                 </div>
-                <div style="margin-top: 25px; display: flex; gap: 10px;">
-                    <button type="submit" style="flex: 2; background: #10b981; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: bold;"><i class="fas fa-save"></i> SIMPAN</button>
-                    <button type="button" onclick="document.getElementById('modal-employee').style.display='none'" style="flex: 1; background: #f1f5f9; color: #64748b; border: none; padding: 14px; border-radius: 8px; cursor: pointer;">BATAL</button>
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button type="submit" style="flex:1; background:#10b981; color:#fff; padding:10px; border:none; border-radius:5px; cursor:pointer;">SIMPAN</button>
+                    <button type="button" onclick="document.getElementById('modal-employee').style.display='none'" style="flex:1; background:#ccc; padding:10px; border:none; border-radius:5px;">BATAL</button>
                 </div>
             </form>
         </div>
@@ -114,6 +167,11 @@
     <script src="js/main.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/router.js"></script>
+    <script src="js/absensi.js"></script>
+    <script src="js/payroll.js"></script>
+    <script src="js/settings.js"></script>
     <script src="js/admin-employees.js"></script>
+    <script src="js/admin-reports.js"></script>
+    <script src="js/admin-dashboard.js"></script>
 </body>
 </html>
