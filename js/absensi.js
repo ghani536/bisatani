@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi Engine PT. BISATANI
- * Versi: Final Test (Fix Sinkronisasi Jam Settings & Radar Kunci)
+ * Versi: Final Integrated (Fix Empty Settings & Data Sync)
  */
 const absensi = {
     stream: null,
@@ -55,16 +55,18 @@ const absensi = {
     async renderButtons() {
         const container = document.getElementById('attendance-btns');
         if (!container) return;
-        container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
+        container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Data...</div>';
 
         try {
-            const cacheBuster = Date.now();
+            // REVISI: Gunakan api.post agar data Settings ditarik secara paksa (Anti-Cache)
             const [statusRes, settingsRes] = await Promise.all([
-                api.get(`getAttendanceStatus&cb=${cacheBuster}`, { userId: auth.user.id }),
-                api.get(`getSettings&cb=${cacheBuster}`)
+                api.post({ action: 'getAttendanceStatus', userId: auth.user.id }),
+                api.post({ action: 'getSettings' })
             ]);
 
-            if (settingsRes && settingsRes.success) this.settingsCache = settingsRes.data;
+            if (settingsRes && settingsRes.success) {
+                this.settingsCache = settingsRes.data;
+            }
 
             const lastData = (statusRes && statusRes.success) ? statusRes.data : null;
             const todayStr = statusRes.today;
@@ -76,8 +78,8 @@ const absensi = {
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                            now.getMinutes().toString().padStart(2, '0');
             
-            // --- RADAR PENCARIAN JAM (Sesuai Filter Code.gs) ---
-            // Mencari kunci jamlemburmin (dari jam_lembur_min), jammulailembur, atau jamkeluar
+            // --- RADAR PENCARIAN JAM (Sinkron dengan pembersihan Code.gs) ---
+            // Mencari jamlemburmin (hasil dari jam_lembur_min yang dihapus "_" nya)
             let rawJam = config['jamlemburmin'] || config['jammulailembur'] || config['jamkeluar'] || "17:00";
             
             let jamMinLembur = "17:00";
@@ -88,9 +90,9 @@ const absensi = {
             }
 
             console.log("--- DEBUG PT. BISATANI ---");
-            console.log("Daftar Kunci Tersedia:", Object.keys(config));
-            console.log("Jam Patokan Ditemukan:", jamMinLembur);
-            console.log("Jam HP Sekarang:", jamNow);
+            console.log("Daftar Kunci Settings:", Object.keys(config)); 
+            console.log("Jam Patokan:", jamMinLembur);
+            console.log("Jam HP:", jamNow);
 
             let html = '';
 
@@ -113,6 +115,7 @@ const absensi = {
                     html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
                 }
 
+                // AKTIFKAN JIKA JAM HP >= JAM SETTINGS
                 if (jamNow >= jamMinLembur) {
                     html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
                 } else {
@@ -126,7 +129,7 @@ const absensi = {
             container.innerHTML = html;
         } catch (e) { 
             console.error("Render Error:", e);
-            container.innerHTML = '<button onclick="location.reload()" class="btn-primary" style="width:100%; padding:15px;">Koneksi Error, Refresh</button>'; 
+            container.innerHTML = '<button onclick="location.reload()" class="btn-primary" style="width:100%; padding:15px;">Gagal Sinkron, Klik untuk Refresh</button>'; 
         }
     },
 
