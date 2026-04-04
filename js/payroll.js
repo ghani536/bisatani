@@ -1,6 +1,6 @@
 /**
  * js/payroll.js - PT. BISATANI
- * Versi Final: Fix Bonus Lembur, Fix Denda Otomatis & Slip Gaji Support
+ * Versi Final: Fix Bonus Lembur, Fix Denda Otomatis & Slip Gaji Support (2 Decimal)
  */
 const payroll = {
     config: {},
@@ -118,7 +118,7 @@ const payroll = {
                 <td style="padding:12px;"><strong>${p.name}</strong><br><small style="color:#64748b;">ID: ${p.id}</small></td>
                 <td>Rp ${p.gapok.toLocaleString('id-ID')}</td>
                 <td style="text-align:center;">${p.hadir} Hari</td>
-                <td style="text-align:center;">${p.lemburJam.toFixed(1)}j</td>
+                <td style="text-align:center;">${p.lemburJam.toFixed(2)}j</td>
                 <td style="color:#10b981; font-weight:600;">+${p.bonusLembur.toLocaleString('id-ID')}</td>
                 <td style="color:#ef4444;">-${p.dendaTelat.toLocaleString('id-ID')}<br><small>(${p.menitTelat} m)</small></td>
                 <td style="color:#ef4444;">-${p.bpjs.toLocaleString('id-ID')}</td>
@@ -154,7 +154,7 @@ const payroll = {
                     <tr><td colspan="2"><hr style="border:0; border-top:1px solid #cbd5e1; margin:15px 0;"></td></tr>
                     
                     <tr><td style="padding:8px 0;">GAJI POKOK</td><td style="text-align:right;">Rp ${data.gapok.toLocaleString('id-ID')}</td></tr>
-                    <tr><td style="padding:8px 0; color:#10b981;">(+) LEMBUR (${data.lemburJam.toFixed(1)}j)</td><td style="text-align:right; color:#10b981;">+ Rp ${data.bonusLembur.toLocaleString('id-ID')}</td></tr>
+                    <tr><td style="padding:8px 0; color:#10b981;">(+) LEMBUR (${data.lemburJam.toFixed(2)}j)</td><td style="text-align:right; color:#10b981;">+ Rp ${data.bonusLembur.toLocaleString('id-ID')}</td></tr>
                     <tr><td style="padding:8px 0; color:#ef4444;">(-) DENDA TELAT (${data.menitTelat} Mnt)</td><td style="text-align:right; color:#ef4444;">- Rp ${data.dendaTelat.toLocaleString('id-ID')}</td></tr>
                     <tr><td style="padding:8px 0; color:#ef4444;">(-) POTONGAN BPJS</td><td style="text-align:right; color:#ef4444;">- Rp ${data.bpjs.toLocaleString('id-ID')}</td></tr>
                     
