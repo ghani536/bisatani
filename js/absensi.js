@@ -80,7 +80,7 @@ const absensi = {
             
             // --- RADAR PENCARIAN JAM (Sinkron dengan pembersihan Code.gs) ---
             // Mencari jamlemburmin (hasil dari jam_lembur_min yang dihapus "_" nya)
-            let rawJam = config['jamlemburmin'] || config['jammulailembur'] || config['jamkeluar'] || "17:00";
+            let rawJam = config['jamlemburmin'] || config['jammulailembur'] || config['jamkeluar'] || "15:00";
             
             let jamMinLembur = "17:00";
             const match = String(rawJam).match(/\d{1,2}:\d{2}/);
