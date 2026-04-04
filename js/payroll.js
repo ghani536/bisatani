@@ -1,6 +1,6 @@
 /**
  * js/payroll.js - PT. BISATANI
- * Versi Final: Fix Denda Slip & Print Support
+ * Versi Final: Fix Denda Otomatis & Slip Gaji Terintegrasi
  */
 const payroll = {
     config: {},
@@ -36,6 +36,7 @@ const payroll = {
             this.attendance = resAtt.data || [];
             this.config = resCfg.data || {};
 
+            // Range Tanggal: 26 Bulan Lalu s/d 25 Bulan Ini
             const startDate = new Date(year, month - 1, 26, 0, 0, 0);
             const endDate = new Date(year, month, 25, 23, 59, 59);
 
@@ -56,11 +57,13 @@ const payroll = {
             return String(a.userId) === String(emp.id) && tgl >= start && tgl <= end;
         });
 
-        // AMBIL DENDA PER MENIT (Prioritas: Database, Cadangan: Hitung Manual)
+        // --- HITUNG DENDA PER MENIT (FORCE CALCULATION) ---
+        const gajiPokok = parseFloat(emp.gaji_pokok || 0);
         let dendaPerMenit = parseFloat(emp.dendatelat || 0);
-        if (dendaPerMenit <= 0) {
-            const gaji = parseFloat(emp.gaji_pokok || 0);
-            dendaPerMenit = Math.round(gaji / 25 / 8 / 60);
+        
+        // Jika data dari database 0/tidak ada, hitung manual dari Gapok
+        if (dendaPerMenit <= 0 && gajiPokok > 0) {
+            dendaPerMenit = Math.round(gajiPokok / 25 / 8 / 60);
         }
 
         let hadirCount = 0;
@@ -79,23 +82,24 @@ const payroll = {
             }
         });
 
-        const gapok = parseInt(emp.gaji_pokok || 0);
         const bpjs = parseInt(emp.bpjs || 0);
         const bonusLembur = Math.round(jamLemburTotal * parseInt(this.config.overtime_rate || 0));
         
-        // HITUNG NOMINAL DENDA
+        // HITUNG NOMINAL AKHIR DENDA
         const nominalDenda = Math.round(totalMenitTelat * dendaPerMenit);
-        const totalGaji = (gapok + bonusLembur) - (bpjs + nominalDenda);
+        
+        // RUMUS: (Gapok + Lembur) - (BPJS + Denda)
+        const totalGaji = (gajiPokok + bonusLembur) - (bpjs + nominalDenda);
 
         return {
             id: emp.id,
             name: emp.name,
-            gapok: gapok,
+            gapok: gajiPokok,
             hadir: hadirCount,
             lemburJam: jamLemburTotal,
             bonusLembur: bonusLembur,
             menitTelat: totalMenitTelat,
-            dendaTelat: nominalDenda, // Pastikan ini terisi
+            dendaTelat: nominalDenda,
             bpjs: bpjs,
             totalGaji: totalGaji
         };
@@ -105,16 +109,20 @@ const payroll = {
         const tbody = document.getElementById('payroll-table-body');
         if (!tbody) return;
         tbody.innerHTML = data.map(p => `
-            <tr>
-                <td><strong>${p.name}</strong><br><small>${p.id}</small></td>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding:12px;"><strong>${p.name}</strong><br><small style="color:#64748b;">ID: ${p.id}</small></td>
                 <td>Rp ${p.gapok.toLocaleString('id-ID')}</td>
                 <td style="text-align:center;">${p.hadir} Hari</td>
                 <td style="text-align:center;">${p.lemburJam.toFixed(1)}j</td>
-                <td style="color:#10b981;">+${p.bonusLembur.toLocaleString('id-ID')}</td>
+                <td style="color:#10b981; font-weight:600;">+${p.bonusLembur.toLocaleString('id-ID')}</td>
                 <td style="color:#ef4444;">-${p.dendaTelat.toLocaleString('id-ID')}<br><small>(${p.menitTelat} m)</small></td>
                 <td style="color:#ef4444;">-${p.bpjs.toLocaleString('id-ID')}</td>
-                <td style="background:#f0fdf4; font-weight:bold;">Rp ${p.totalGaji.toLocaleString('id-ID')}</td>
-                <td><button onclick="payroll.showSlip('${p.id}')" style="background:#6366f1; color:white; border:none; padding:6px; border-radius:6px; cursor:pointer;"><i class="fas fa-file-invoice"></i> Slip</button></td>
+                <td style="background:#f0fdf4; font-weight:700; color:#166534;">Rp ${p.totalGaji.toLocaleString('id-ID')}</td>
+                <td style="text-align:center;">
+                    <button onclick="payroll.showSlip('${p.id}')" style="background:#6366f1; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">
+                        <i class="fas fa-file-invoice"></i> Slip
+                    </button>
+                </td>
             </tr>
         `).join('');
     },
@@ -126,34 +134,49 @@ const payroll = {
         const modal = document.getElementById('modal-slip');
         const content = document.getElementById('slip-content');
         const bulanNama = document.getElementById('payroll-month').options[document.getElementById('payroll-month').selectedIndex].text;
+        const tahun = document.getElementById('payroll-year').value;
 
         content.innerHTML = `
-            <div id="printable-area">
-                <div style="text-align:center; border-bottom:2px dashed #eee; padding-bottom:10px; margin-bottom:15px;">
-                    <h3 style="margin:0; color:#10b981;">PT. BISATANI</h3>
-                    <small>Slip Gaji: ${bulanNama} ${document.getElementById('payroll-year').value}</small>
+            <div id="printable-area" style="padding: 15px; background: white;">
+                <div style="text-align:center; border-bottom:2px dashed #334155; padding-bottom:15px; margin-bottom:20px;">
+                    <h2 style="margin:0; color:#10b981; letter-spacing: 2px;">PT. BISATANI</h2>
+                    <p style="margin:5px 0 0; color:#64748b; font-size:12px;">SLIP GAJI KARYAWAN PERIODE ${bulanNama.toUpperCase()} ${tahun}</p>
                 </div>
-                <table style="width:100%; border-collapse:collapse; font-size:13px; font-family:monospace;">
-                    <tr><td>NAMA</td><td>: <strong>${data.name}</strong></td></tr>
-                    <tr><td>ID KARYAWAN</td><td>: ${data.id}</td></tr>
-                    <tr><td colspan="2"><hr style="border:0; border-top:1px solid #eee; margin:10px 0;"></td></tr>
-                    <tr><td>GAJI POKOK</td><td style="text-align:right;">Rp ${data.gapok.toLocaleString('id-ID')}</td></tr>
-                    <tr><td style="color:#10b981;">(+) LEMBUR (${data.lemburJam.toFixed(1)}j)</td><td style="text-align:right; color:#10b981;">+ Rp ${data.bonusLembur.toLocaleString('id-ID')}</td></tr>
-                    <tr><td style="color:#ef4444;">(-) DENDA TELAT (${data.menitTelat} Menit)</td><td style="text-align:right; color:#ef4444;">- Rp ${data.dendaTelat.toLocaleString('id-ID')}</td></tr>
-                    <tr><td style="color:#ef4444;">(-) POTONGAN BPJS</td><td style="text-align:right; color:#ef4444;">- Rp ${data.bpjs.toLocaleString('id-ID')}</td></tr>
-                    <tr><td colspan="2"><hr style="border:0; border-top:2px solid #334155; margin:10px 0;"></td></tr>
-                    <tr style="font-weight:bold; font-size:16px;">
-                        <td>TOTAL GAJI</td>
-                        <td style="text-align:right; color:#166534;">Rp ${data.totalGaji.toLocaleString('id-ID')}</td>
+                
+                <table style="width:100%; border-collapse:collapse; font-size:14px; font-family:'Courier New', Courier, monospace;">
+                    <tr><td style="width:120px; padding:5px 0;">NAMA</td><td>: <strong>${data.name.toUpperCase()}</strong></td></tr>
+                    <tr><td style="padding:5px 0;">ID KARYAWAN</td><td>: ${data.id}</td></tr>
+                    <tr><td colspan="2"><hr style="border:0; border-top:1px solid #cbd5e1; margin:15px 0;"></td></tr>
+                    
+                    <tr><td style="padding:8px 0;">GAJI POKOK</td><td style="text-align:right;">Rp ${data.gapok.toLocaleString('id-ID')}</td></tr>
+                    <tr><td style="padding:8px 0; color:#10b981;">(+) LEMBUR (${data.lemburJam.toFixed(1)}j)</td><td style="text-align:right; color:#10b981;">+ Rp ${data.bonusLembur.toLocaleString('id-ID')}</td></tr>
+                    <tr><td style="padding:8px 0; color:#ef4444;">(-) DENDA TELAT (${data.menitTelat} Mnt)</td><td style="text-align:right; color:#ef4444;">- Rp ${data.dendaTelat.toLocaleString('id-ID')}</td></tr>
+                    <tr><td style="padding:8px 0; color:#ef4444;">(-) POTONGAN BPJS</td><td style="text-align:right; color:#ef4444;">- Rp ${data.bpjs.toLocaleString('id-ID')}</td></tr>
+                    
+                    <tr><td colspan="2"><hr style="border:0; border-top:2px solid #1e293b; margin:15px 0;"></td></tr>
+                    <tr style="font-weight:bold; font-size:18px;">
+                        <td style="color:#1e293b; padding:10px 0;">TOTAL BERSIH</td>
+                        <td style="text-align:right; color:#166534; padding:10px 0;">Rp ${data.totalGaji.toLocaleString('id-ID')}</td>
                     </tr>
                 </table>
+
+                <div style="margin-top:30px; text-align:center; font-size:11px; color:#94a3b8; font-style:italic;">
+                    Terima kasih atas dedikasi Anda.<br>
+                    Dicetak pada: ${new Date().toLocaleString('id-ID')}
+                </div>
             </div>
-            <div style="margin-top:20px; display:flex; gap:10px;" class="no-print">
-                <button onclick="window.print()" style="flex:1; background:#10b981; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;"><i class="fas fa-print"></i> Cetak</button>
-                <button onclick="document.getElementById('modal-slip').style.display='none'" style="flex:1; background:#94a3b8; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer;"><i class="fas fa-times"></i> Tutup</button>
+
+            <div style="margin-top:25px; display:flex; gap:12px;" class="no-print">
+                <button onclick="window.print()" style="flex:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i class="fas fa-print"></i> CETAK PDF
+                </button>
+                <button onclick="document.getElementById('modal-slip').style.display='none'" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:600;">
+                    <i class="fas fa-times"></i> TUTUP
+                </button>
             </div>
         `;
         modal.style.display = 'flex';
+        modal.style.zIndex = '99999';
     }
 };
 
