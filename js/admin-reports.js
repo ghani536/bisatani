@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Admin Reports PT. BISATANI
- * Versi Full: Menampilkan Mulai, Selesai, dan Total Lembur
+ * Versi Full: Fix Tampilan Mulai, Selesai, dan Total Lembur (Anti-Undefined)
  */
 const adminReports = {
     allAttendance: [],
@@ -24,12 +24,13 @@ const adminReports = {
     async loadData() {
         const tbody = document.getElementById('attendance-reports-body');
         if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi database...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;"><i class="fas fa-sync fa-spin"></i> Menghubungkan ke database...</td></tr>';
 
         try {
+            // Menggunakan api.post karena biasanya GAS lebih stabil dengan POST
             const [resAtt, resEmp] = await Promise.all([
-                api.get('getAllAttendanceData'),
-                api.get('getEmployees')
+                api.post({ action: 'getAllAttendanceData' }),
+                api.post({ action: 'getEmployees' })
             ]);
 
             if (resAtt && resAtt.success) this.allAttendance = resAtt.data || [];
@@ -40,7 +41,7 @@ const adminReports = {
             this.renderTable();
         } catch (e) {
             console.error("Load Data Error:", e);
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Gagal memuat data.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red; padding:20px;">Gagal sinkronisasi data.</td></tr>';
         }
     },
 
@@ -55,7 +56,8 @@ const adminReports = {
     },
 
     bindEvents() {
-        ['report-start-date', 'report-end-date', 'report-type-filter', 'report-employee-filter', 'report-search'].forEach(id => {
+        const filters = ['report-start-date', 'report-end-date', 'report-type-filter', 'report-employee-filter', 'report-search'];
+        filters.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('change', () => this.renderTable());
@@ -68,10 +70,11 @@ const adminReports = {
         const tbody = document.getElementById('attendance-reports-body');
         if (!tbody) return;
 
-        const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : ""; };
-        const start = getVal('report-start-date'), end = getVal('report-end-date'),
-              type = getVal('report-type-filter'), empId = getVal('report-employee-filter'),
-              search = getVal('report-search').toLowerCase();
+        const start = document.getElementById('report-start-date')?.value;
+        const end = document.getElementById('report-end-date')?.value;
+        const type = document.getElementById('report-type-filter')?.value;
+        const empId = document.getElementById('report-employee-filter')?.value;
+        const search = document.getElementById('report-search')?.value.toLowerCase();
 
         const filtered = this.allAttendance.filter(log => {
             if (!log.timestamp) return false;
@@ -79,37 +82,46 @@ const adminReports = {
             const matchDate = (!start || !end) ? true : (logDate >= start && logDate <= end);
             const matchType = !type || log.type === type;
             const matchEmp = !empId || String(log.userId) === String(empId);
-            const matchSearch = !search || (log.userName && log.userName.toLowerCase().includes(search)) || (String(log.userId).includes(search));
+            const matchSearch = !search || 
+                (log.userName && log.userName.toLowerCase().includes(search)) || 
+                (String(log.userId).includes(search));
+            
             return matchDate && matchType && matchEmp && matchSearch;
         });
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">Tidak ada data absensi untuk filter ini.</td></tr>';
             return;
         }
 
-        // Urutkan dari yang terbaru
+        // Urutkan dari yang terbaru (Timestamp descending)
         filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         tbody.innerHTML = filtered.map((log, index) => {
             const d = new Date(log.timestamp);
             const waktu = d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
             
-            // Render Baris Tabel dengan mapping yang akurat
+            // --- FIX UNDEFINED DISINI ---
+            // Jika data mulai/selesai/totalHours tidak ada di JSON, tampilkan "-" atau "0"
+            const jamMulai = log.mulai || '-';
+            const jamSelesai = log.selesai || '-';
+            const totalJam = (log.totalHours && log.totalHours !== "0") ? log.totalHours + " j" : "-";
+            const telatInfo = (log.statusTelat && log.statusTelat !== "0") ? log.statusTelat : "-";
+
             return `
-                <tr>
-                    <td style="text-align:center;">${index + 1}</td>
-                    <td><small>${waktu}</small></td>
-                    <td><strong>${log.userName || log.userId}</strong></td>
-                    <td><span class="badge-${String(log.type).toLowerCase().replace(/_/g, '-')}">${log.type}</span></td>
-                    <td><small>${log.location || '-'}</small></td>
-                    <td style="text-align:center;">
-                        ${log.image ? `<img src="${log.image}" style="width:35px; height:35px; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">` : '-'}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="text-align:center; padding:10px;">${index + 1}</td>
+                    <td style="padding:10px;"><small>${waktu}</small></td>
+                    <td style="padding:10px;"><strong>${log.userName || log.userId}</strong></td>
+                    <td style="padding:10px;"><span class="badge-${String(log.type).toLowerCase().replace(/_/g, '-')}">${log.type}</span></td>
+                    <td style="padding:10px;"><small>${log.location || '-'}</small></td>
+                    <td style="text-align:center; padding:10px;">
+                        ${log.image ? `<img src="${log.image}" style="width:30px; height:30px; border-radius:4px; object-fit:cover; cursor:pointer;" onclick="window.open(this.src)">` : '-'}
                     </td>
-                    <td><small>${log.statusTelat || '-'}</small></td>
-                    <td style="text-align:center;">${log.mulai}</td>
-                    <td style="text-align:center;">${log.selesai}</td>
-                    <td style="text-align:center; font-weight:bold; color:#2563eb;">${log.totalHours}</td>
+                    <td style="padding:10px; color:#ef4444;"><small>${telatInfo}</small></td>
+                    <td style="text-align:center; padding:10px;">${jamMulai}</td>
+                    <td style="text-align:center; padding:10px;">${jamSelesai}</td>
+                    <td style="text-align:center; font-weight:bold; color:#2563eb; padding:10px;">${totalJam}</td>
                 </tr>
             `;
         }).join('');
