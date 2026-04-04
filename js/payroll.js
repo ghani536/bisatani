@@ -1,6 +1,6 @@
 /**
  * js/payroll.js - PT. BISATANI
- * Versi Final: Fix Denda Otomatis & Slip Gaji Terintegrasi
+ * Versi Final: Fix Bonus Lembur, Fix Denda Otomatis & Slip Gaji Support
  */
 const payroll = {
     config: {},
@@ -57,11 +57,12 @@ const payroll = {
             return String(a.userId) === String(emp.id) && tgl >= start && tgl <= end;
         });
 
-        // --- HITUNG DENDA PER MENIT (FORCE CALCULATION) ---
+        // 1. TARIF LEMBUR (Dari Settings, default 10.000 jika kosong)
+        const tarifLembur = parseInt(this.config.overtime_rate || 10000);
+
+        // 2. DENDA PER MENIT (Database atau Hitung Manual)
         const gajiPokok = parseFloat(emp.gaji_pokok || 0);
         let dendaPerMenit = parseFloat(emp.dendatelat || 0);
-        
-        // Jika data dari database 0/tidak ada, hitung manual dari Gapok
         if (dendaPerMenit <= 0 && gajiPokok > 0) {
             dendaPerMenit = Math.round(gajiPokok / 25 / 8 / 60);
         }
@@ -77,18 +78,22 @@ const payroll = {
                     totalMenitTelat += parseInt(log.statusTelat) || 0;
                 }
             }
+            // HITUNG JAM LEMBUR DARI TOTALHOURS
             if (log.type === 'SELESAI_LEMBUR') {
-                jamLemburTotal += parseFloat(log.totalHours || 0);
+                const jam = parseFloat(log.totalHours || 0);
+                jamLemburTotal += jam;
             }
         });
 
         const bpjs = parseInt(emp.bpjs || 0);
-        const bonusLembur = Math.round(jamLemburTotal * parseInt(this.config.overtime_rate || 0));
+        
+        // HITUNG NOMINAL BONUS LEMBUR
+        const bonusLembur = Math.round(jamLemburTotal * tarifLembur);
         
         // HITUNG NOMINAL AKHIR DENDA
         const nominalDenda = Math.round(totalMenitTelat * dendaPerMenit);
         
-        // RUMUS: (Gapok + Lembur) - (BPJS + Denda)
+        // RUMUS AKHIR
         const totalGaji = (gajiPokok + bonusLembur) - (bpjs + nominalDenda);
 
         return {
