@@ -63,7 +63,6 @@ const adminEmployees = {
                     <td style="padding:12px;">${emp.department || '-'}</td>
                     <td style="padding:12px;">${emp.position || '-'}</td>
                     <td style="padding:12px; font-weight:500;">Rp ${gajiVal}</td>
-                    <td style="padding:12px; text-align:center; color:#ef4444; font-weight:bold;">Rp ${dendaVal}</td>
                     <td style="padding:12px; text-align:center;">
                         <div style="display:flex; gap:8px; justify-content:center;">
                             <button onclick="adminEmployees.prepareEdit('${emp.id}')" style="background:#f59e0b; color:white; border:none; width:32px; height:32px; border-radius:6px; cursor:pointer;" title="Edit"><i class="fas fa-edit"></i></button>
