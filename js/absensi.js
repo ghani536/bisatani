@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi Engine PT. BISATANI
- * Versi: Final Test (Fix Jam Lembur, Debug Mode & Farewell Message)
+ * Versi: Final Test (Fix Sinkronisasi Jam Settings & Radar Kunci)
  */
 const absensi = {
     stream: null,
@@ -52,7 +52,7 @@ const absensi = {
         } catch (e) { this.locationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
     },
 
-async renderButtons() {
+    async renderButtons() {
         const container = document.getElementById('attendance-btns');
         if (!container) return;
         container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi...</div>';
@@ -76,9 +76,9 @@ async renderButtons() {
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                            now.getMinutes().toString().padStart(2, '0');
             
-            // --- REVISI RADAR PENCARIAN JAM LEMBUR ---
-            // Mencoba mencari kunci jamlemburmin, jammulailembur, atau jamkeluar
-            let rawJam = config['jammulailembur'] || config['jamkeluar'] || config['jamlemburmin'] || "17:00";
+            // --- RADAR PENCARIAN JAM (Sesuai Filter Code.gs) ---
+            // Mencari kunci jamlemburmin (dari jam_lembur_min), jammulailembur, atau jamkeluar
+            let rawJam = config['jamlemburmin'] || config['jammulailembur'] || config['jamkeluar'] || "17:00";
             
             let jamMinLembur = "17:00";
             const match = String(rawJam).match(/\d{1,2}:\d{2}/);
@@ -88,9 +88,9 @@ async renderButtons() {
             }
 
             console.log("--- DEBUG PT. BISATANI ---");
-            console.log("Setting Terdeteksi:", rawJam);
-            console.log("Jam Patokan:", jamMinLembur);
-            console.log("Jam HP:", jamNow);
+            console.log("Daftar Kunci Tersedia:", Object.keys(config));
+            console.log("Jam Patokan Ditemukan:", jamMinLembur);
+            console.log("Jam HP Sekarang:", jamNow);
 
             let html = '';
 
@@ -113,7 +113,6 @@ async renderButtons() {
                     html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
                 }
 
-                // AKTIFKAN TOMBOL JIKA SUDAH LEWAT JAM PATOKAN
                 if (jamNow >= jamMinLembur) {
                     html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
                 } else {
@@ -134,22 +133,17 @@ async renderButtons() {
     async submit(type) {
         if (!this.location) return alert("GPS belum stabil!");
         const btn = event.currentTarget;
-        const originalText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
         try {
-            let statusTelat = "-";
-            if (type === 'MASUK' && this.settingsCache && this.settingsCache.jam_masuk) {
-                const now = new Date();
-                const [h, m] = this.settingsCache.jam_masuk.split(':');
-                const jadwal = new Date();
-                jadwal.setHours(parseInt(h), parseInt(m), 0);
-                if (now > jadwal) {
-                    const selisih = Math.floor((now - jadwal) / 60000);
-                    statusTelat = selisih + " Menit";
-                } else { statusTelat = "0"; }
-            }
-            const payload = { action: 'saveAttendance', userId: auth.user.id, userName: auth.user.name, type: type, location: this.locationName, image: this.captureImage(), statusTelat: statusTelat, lat: this.location.lat, lng: this.location.lng };
+            const payload = { 
+                action: 'saveAttendance', 
+                userId: auth.user.id, 
+                userName: auth.user.name, 
+                type: type, 
+                location: this.locationName, 
+                image: this.captureImage() 
+            };
             await api.post(payload);
             alert(`✅ Absen ${type} Berhasil!`);
             location.reload(); 
