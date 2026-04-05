@@ -1,6 +1,6 @@
 /**
  * Portal Karyawan - Absensi Engine PT. BISATANI
- * Versi: Final Integrated (Fix Empty Settings & Data Sync)
+ * Versi: Final Integrated (Fix Tanggal Nyangkut & Sinkronisasi)
  */
 const absensi = {
     stream: null,
@@ -58,7 +58,6 @@ const absensi = {
         container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-sync fa-spin"></i> Sinkronisasi Data...</div>';
 
         try {
-            // REVISI: Gunakan api.post agar data Settings ditarik secara paksa (Anti-Cache)
             const [statusRes, settingsRes] = await Promise.all([
                 api.post({ action: 'getAttendanceStatus', userId: auth.user.id }),
                 api.post({ action: 'getSettings' })
@@ -69,19 +68,21 @@ const absensi = {
             }
 
             const lastData = (statusRes && statusRes.success) ? statusRes.data : null;
-            const todayStr = statusRes.today;
+            
+            // --- FIX TANGGAL: Paksa pakai tanggal hari ini dari Browser ---
+            const now = new Date();
+            const todayStr = now.getFullYear() + "-" + 
+                             String(now.getMonth() + 1).padStart(2, '0') + "-" + 
+                             String(now.getDate()).padStart(2, '0');
+            
             const isActionToday = (lastData && lastData.date === todayStr);
             const lastType = isActionToday ? lastData.type : null; 
 
             const config = this.settingsCache || {};
-            const now = new Date();
             const jamNow = now.getHours().toString().padStart(2, '0') + ":" + 
                            now.getMinutes().toString().padStart(2, '0');
             
-            // --- RADAR PENCARIAN JAM (Sinkron dengan pembersihan Code.gs) ---
-            // Mencari jamlemburmin (hasil dari jam_lembur_min yang dihapus "_" nya)
-            let rawJam = config['jamlemburmin'] || config['jammulailembur'] || config['jamkeluar'] || "15:00";
-            
+            let rawJam = config['jamlemburmin'] || config['jammulailembur'] || config['jamkeluar'] || "17:00";
             let jamMinLembur = "17:00";
             const match = String(rawJam).match(/\d{1,2}:\d{2}/);
             if (match) {
@@ -90,9 +91,9 @@ const absensi = {
             }
 
             console.log("--- DEBUG PT. BISATANI ---");
-            console.log("Daftar Kunci Settings:", Object.keys(config)); 
+            console.log("Tanggal Hari Ini:", todayStr);
+            console.log("Status Terakhir:", lastType);
             console.log("Jam Patokan:", jamMinLembur);
-            console.log("Jam HP:", jamNow);
 
             let html = '';
 
@@ -115,7 +116,6 @@ const absensi = {
                     html += `<button onclick="absensi.submit('PULANG')" class="btn-pulang" style="background:#f43f5e; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;"><i class="fas fa-sign-out-alt"></i> ABSEN PULANG</button>`;
                 }
 
-                // AKTIFKAN JIKA JAM HP >= JAM SETTINGS
                 if (jamNow >= jamMinLembur) {
                     html += `<button onclick="absensi.submit('MULAI_LEMBUR')" class="btn-lembur" style="background:#6366f1; color:white; width:100%; padding:15px; border:none; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fas fa-moon"></i> MULAI LEMBUR</button>`;
                 } else {
